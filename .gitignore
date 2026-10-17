@@ -72,3 +72,6 @@ Desktop.ini
 
 # Kubernetes secrets
 infra/k8s/secrets/
+
+# Redis dumps
+*.rdb
