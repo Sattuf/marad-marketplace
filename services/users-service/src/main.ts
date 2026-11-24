@@ -7,7 +7,8 @@ import { ValidationPipe } from '@nestjs/common';
 
 import * as Sentry from '@sentry/node';
 import { SentryExceptionFilter } from './filters/sentry-exception.filter';
-import { assertRequiredSecrets, loadPublicKeys, corsOrigins } from './common/security';
+import { assertRequiredSecrets, loadPublicKeys, corsOrigins, isProduction } from './common/security';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   assertRequiredSecrets('INTERNAL_SECRET');
@@ -26,6 +27,17 @@ async function bootstrap() {
     express.static(path.join(process.cwd(), 'tmp', 'avatars'), { index: false, fallthrough: false, maxAge: '7d', immutable: true }),
   );
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
-  await app.listen(process.env.PORT ?? 3000);
+
+  if (!isProduction()) {
+    const config = new DocumentBuilder()
+      .setTitle('Users Service')
+      .setDescription('Profiles, notification settings and favorites')
+      .setVersion('0.1.0')
+      .addBearerAuth()
+      .build();
+    SwaggerModule.setup('api/docs', app, SwaggerModule.createDocument(app, config));
+  }
+
+  await app.listen(process.env.PORT ?? 3007);
 }
 bootstrap();

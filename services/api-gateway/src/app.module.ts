@@ -1,3 +1,4 @@
+import { DocsModule } from './docs/docs.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
@@ -14,6 +15,8 @@ const isAuthRoute = (path: string) => path.startsWith('/api/v1/auth');
 
 @Module({
   imports: [
+    // Aggregated API docs (development only, like every service's Swagger UI).
+    ...(process.env.NODE_ENV !== 'production' ? [DocsModule] : []),
     PrometheusModule.register({ controller: MetricsController }),
     ConfigModule.forRoot({
       isGlobal: true,

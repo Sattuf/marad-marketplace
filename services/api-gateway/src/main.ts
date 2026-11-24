@@ -8,6 +8,7 @@ import helmet from 'helmet';
 import * as Sentry from '@sentry/node';
 import { SentryExceptionFilter } from './filters/sentry-exception.filter';
 import { requestId } from './common/request-id';
+import { documentedServices } from './docs/openapi-aggregator';
 
 const DEV_CORS_ORIGINS = ['http://localhost:3100', 'http://localhost:8080', 'http://localhost:5000'];
 
@@ -73,7 +74,18 @@ async function bootstrap() {
     .build();
   if (process.env.NODE_ENV !== 'production') {
     const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('api/docs', app, document);
+    // One Swagger UI for the whole platform: a dropdown of every service's API, served
+    // through the gateway (see docs/docs.controller.ts).
+    SwaggerModule.setup('api/docs', app, document, {
+      explorer: true,
+      swaggerOptions: {
+        urls: [
+          { url: '/api/docs-json', name: 'api-gateway' },
+          ...documentedServices().map((s) => ({ url: `/api/docs/specs/${s.name}.json`, name: s.name })),
+        ],
+        persistAuthorization: true,
+      },
+    });
   }
 
   const port = process.env.PORT ?? 3000;

@@ -45,7 +45,7 @@
 | S13 | Info | — | `services/*/README.md` | gitleaks: a placeholder CircleCI badge token في قالب NestJS README — **إيجابية كاذبة** | ✅ أُضيف `.gitleaks.toml` (T1.1) |
 | S14 | Low | API4 | compose | منافذ الخدمات الداخلية (3004–3008، 8001–8002) منشورة على `127.0.0.1` فتتجاوز Rate limit البوابة محلياً | ✅ لا يُنشر إلا البوابة وsocket المحادثات |
 | S16 | Medium | API5 / عزل الخدمات | compose | (وجده المراجع المستقل لـ T4.2) كل الخدمات تتصل بـ Postgres بالمستخدم نفسه وتتشارك `INTERNAL_SECRET` واحداً: اختراق أي خدمة يتيح `UPDATE users SET role='admin'` أو استدعاء مسارات داخلية لخدمات أخرى. T4.2 أغلق أرخص طريق (سكّ الرموز) لا كلها. الحل: دور Postgres لكل خدمة بصلاحيات على جداولها فقط، وسر داخلي لكل زوج (أو mTLS) | ⏳ عمل مستقبلي موثق |
-| S15 | Low | API9 | users-service | المنفذ الافتراضي 3000 يتعارض مع البوابة عند غياب `PORT` | ⚠️ compose وHelm يمرران `PORT` دائماً |
+| S15 | Low | API9 | users-service | المنفذ الافتراضي 3000 يتعارض مع البوابة عند غياب `PORT` | ✅ الافتراضي 3007 (T4.1) |
 
 **gitleaks (تاريخ git كامل، 41 commit):** 5 نتائج — 4 إيجابيات كاذبة (S13) + مفتاح Firebase (S12).
 لا أسرار خادم (JWT، قواعد بيانات، AWS، Stripe) في التاريخ. الأسرار الافتراضية القديمة (`your-secret-key`...)
@@ -63,7 +63,7 @@
 | API6 Sensitive Business Flows | ✅ OTP محدود وذري، idempotency للمعاملات، قفل الحساب |
 | API7 SSRF | ✅ لا طلبات إلى عناوين يحددها المستخدم |
 | API8 Security Misconfiguration | ❌ → S1–S8 (اعتماديات وDocker) — الأولوية الأولى |
-| API9 Improper Inventory | 🟡 Swagger لكل خدمة، لكن لا فهرس موحد في البوابة (T4.1) |
+| API9 Improper Inventory | ✅ فهرس OpenAPI موحد لكل الخدمات العشر في `/api/docs` (معطّل في الإنتاج)، والمسارات الداخلية المحجوبة لا تُعلَن |
 | API10 Unsafe Consumption | ✅ webhooks Didit/Stripe بتوقيع HMAC، والتحقق من `aud` لرموز Google/Facebook |
 
 ## 4. سجل الإصلاح
