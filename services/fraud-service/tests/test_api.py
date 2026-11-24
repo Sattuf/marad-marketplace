@@ -151,3 +151,14 @@ def test_admin_rejects_token_signed_with_another_hmac_algorithm():
     token = jwt.encode({"sub": "admin", "role": "admin"}, os.environ["JWT_ACCESS_SECRET"], algorithm="HS512")
     response = client.get("/fraud/admin/dashboard", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 401
+
+
+def test_errors_use_the_unified_body_with_request_id():
+    response = client.get("/fraud/admin/dashboard", headers={"X-Request-ID": "req-abc-123"})
+    body = response.json()
+    assert response.status_code == 401
+    assert body["statusCode"] == 401
+    assert body["error"] == "Unauthorized"
+    assert body["requestId"] == "req-abc-123"
+    assert body["path"] == "/fraud/admin/dashboard"
+    assert "message" in body and "timestamp" in body

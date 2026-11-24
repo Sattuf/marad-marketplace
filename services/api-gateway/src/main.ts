@@ -7,6 +7,7 @@ import helmet from 'helmet';
 
 import * as Sentry from '@sentry/node';
 import { SentryExceptionFilter } from './filters/sentry-exception.filter';
+import { requestId } from './common/request-id';
 
 const DEV_CORS_ORIGINS = ['http://localhost:3100', 'http://localhost:8080', 'http://localhost:5000'];
 
@@ -42,6 +43,9 @@ async function bootstrap() {
     }),
   );
 
+  app.use(requestId);
+  app.enableShutdownHooks();
+
   // Webhooks are verified against the exact bytes the vendor signed, so keep them raw.
   app.use(['/api/v1/promotions/webhook', '/api/v1/identity/kyc/webhook'], express.raw({ type: 'application/json', limit: '1mb' }));
   app.use(express.json({ limit: '1mb' }));
@@ -52,6 +56,7 @@ async function bootstrap() {
     origin: corsOrigins(),
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
+    exposedHeaders: ['X-Request-ID'],
     credentials: true,
   });
 

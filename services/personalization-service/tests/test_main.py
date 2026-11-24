@@ -112,7 +112,7 @@ async def test_create_event_rejects_malformed_ids():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post("/events", json={"eventType": "view", "listingId": "1; DROP TABLE"}, headers=headers)
-    assert response.status_code == 422
+    assert response.status_code == 400  # unified with the NestJS services (was FastAPI's 422)
 
 
 @pytest.mark.anyio

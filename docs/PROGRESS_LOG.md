@@ -63,3 +63,9 @@
 - تحقق على Postgres حقيقي: 50 بلاغاً متزامناً → `pending_count = 50`.
 - **بوابة الجودة:** moderation 11 اختباراً (1 جديد)؛ اختبارات مشغّل الترحيلات 4/4؛ بلاغ عبر البوابة 201؛ e2e **52/52**.
 - **المرحلة 3 مكتملة.**
+
+### T4.3 — صيغة أخطاء موحدة + Request ID ✅
+- البوابة: middleware `requestId` يقبل معرّف العميل إن كان آمناً (`[A-Za-z0-9._-]{8,64}` — يمنع حقن أسطر في السجلات) وإلا يولّد UUID، يمرّره للخدمة ويعيده في `X-Request-ID` (مع `exposedHeaders` لـ CORS).
+- الفلتر المشترك (9 نسخ متطابقة): `{statusCode, error, message, requestId, timestamp, path}`؛ أخطاء 500 لا تكشف التفاصيل وتُسجَّل مع requestId.
+- FastAPI: `errors.py` (نسختان متطابقتان، أُضيفتا لـ `check-shared-copies.mjs`) بنفس الشكل؛ أخطاء التحقق 400 بدل 422.
+- **بوابة الجودة:** gateway 46 (+6)، كل خدمات Node خضراء، fraud 14، personalization 8؛ 18 حاوية healthy؛ e2e **52/52**؛ تحقق يدوي: الخطأ نفسه الشكل من Nest ومن FastAPI مع `requestId` المُمرَّر.
