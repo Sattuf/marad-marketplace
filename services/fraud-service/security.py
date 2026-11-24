@@ -8,7 +8,7 @@ import os
 
 from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
+import jwt
 
 _bearer = HTTPBearer()
 
@@ -44,7 +44,7 @@ async def verify_admin(credentials: HTTPAuthorizationCredentials = Depends(_bear
             algorithms=["HS256"],
             options={"verify_aud": False},
         )
-    except JWTError:
+    except jwt.PyJWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     if payload.get("role") != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")

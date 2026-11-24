@@ -1,15 +1,12 @@
-fastapi
-uvicorn[standard]
-asyncpg==0.31.0
-redis
-elasticsearch[async]>=8.15,<9
-python-jose[cryptography]
-scikit-learn
-numpy
-httpx
-pydantic
-pydantic-settings
-python-dotenv
-pytest
-prometheus-fastapi-instrumentator
-sentry-sdk
+# Runtime dependencies (pinned). Test tools: requirements-dev.txt.
+fastapi==0.165.0
+uvicorn[standard]==0.54.0
+asyncpg==0.32.0
+redis==8.2.0
+elasticsearch[async]==8.19.3
+httpx==0.28.1
+pydantic==2.14.4
+pydantic-settings==2.16.3
+pyjwt==2.15.1
+prometheus-fastapi-instrumentator==8.1.0
+sentry-sdk==3.0.0

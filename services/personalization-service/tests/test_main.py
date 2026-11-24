@@ -1,6 +1,6 @@
 import pytest
 from httpx import AsyncClient, ASGITransport
-from jose import jwt
+import jwt
 from app.main import app
 from app.core.config import settings
 from tests.conftest import CATEGORY_1, LISTING_1

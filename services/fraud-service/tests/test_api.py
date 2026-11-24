@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from main import app
-from jose import jwt
+import jwt
 import os
 
 client = TestClient(app)
@@ -36,8 +36,9 @@ def mock_db(monkeypatch):
     monkeypatch.setattr("database.close_postgres_connection", mock_close)
 
 def test_admin_dashboard_unauthorized():
+    # No credentials at all: 401 (FastAPI >= 0.120 follows RFC 7235; it used to answer 403).
     response = client.get("/fraud/admin/dashboard")
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 def test_admin_action_with_token(monkeypatch):
     # We mock pg_pool to avoid errors
@@ -107,7 +108,7 @@ def test_admin_rejects_non_admin_role():
 
 def test_risk_requires_admin():
     response = client.get("/fraud/risk/u1")
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 
 def test_ingestion_requires_internal_secret():
@@ -115,3 +116,38 @@ def test_ingestion_requires_internal_secret():
     assert client.post("/fraud/device/check", json=payload).status_code == 401
     wrong = {"x-internal-secret": "marad-internal-secret-for-webhooks"}
     assert client.post("/fraud/device/check", json=payload, headers=wrong).status_code == 401
+
+
+def _unsigned_token(payload: dict) -> str:
+    """A token with alg=none and no signature (the classic JWT bypass)."""
+    import base64
+    import json
+
+    def b64(obj):
+        return base64.urlsafe_b64encode(json.dumps(obj).encode()).rstrip(b"=").decode()
+
+    return f"{b64({'alg': 'none', 'typ': 'JWT'})}.{b64(payload)}."
+
+
+def test_admin_rejects_unsigned_alg_none_token():
+    headers = {"Authorization": f"Bearer {_unsigned_token({'sub': 'admin', 'role': 'admin'})}"}
+    response = client.get("/fraud/admin/dashboard", headers=headers)
+    assert response.status_code == 401
+
+
+def test_admin_rejects_expired_token():
+    import time
+
+    token = jwt.encode(
+        {"sub": "admin", "role": "admin", "exp": int(time.time()) - 60},
+        os.environ["JWT_ACCESS_SECRET"],
+        algorithm="HS256",
+    )
+    response = client.get("/fraud/admin/dashboard", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 401
+
+
+def test_admin_rejects_token_signed_with_another_hmac_algorithm():
+    token = jwt.encode({"sub": "admin", "role": "admin"}, os.environ["JWT_ACCESS_SECRET"], algorithm="HS512")
+    response = client.get("/fraud/admin/dashboard", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 401
