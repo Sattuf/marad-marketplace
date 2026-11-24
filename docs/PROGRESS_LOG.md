@@ -26,3 +26,11 @@
 - **عائق بيئي:** امتلأ قرص الحصة → ES فرض `read_only_allow_delete`. أُضيف `cluster.routing.allocation.disk.threshold_enabled=false` لعنقود التطوير، ونُظّف build cache (25GB).
 - **بوابة الجودة:** prod audit 0/0 في الجذر وusers وmoderation وdb؛ typecheck نظيف؛ 190 Node + 61 ويب + 2 جديدان؛ `next build` ناجح؛ 12 صورة؛ e2e **52/52**.
 - ملاحظة: `eslint` الويب يُظهر 20 خطأ سابقاً (لا يشغّله CI) → T5.1.
+
+### T1.3 — اعتماديات Python ✅
+- `python-jose` (ثغرات بلا إصلاح) → `PyJWT 2.15.1` في fraud وpersonalization. fastapi 0.115 → 0.165 (starlette 1.10).
+- كل الإصدارات مثبتة؛ pytest خارج صورة الإنتاج (`requirements-dev.txt`)؛ أُزيلت numpy/scikit-learn/python-dotenv غير المستخدمة من personalization.
+- `services/fraud-service/app/` (هيكل فارغ من Sprint 0) واختباره → `archive/fraud-service-stub/`.
+- تغيّر سلوك: FastAPI ≥ 0.120 يعيد **401** بدل 403 عند غياب رمز Bearer (مطابق لـ RFC 7235) — حُدّث اختباران.
+- أُضيفت 3 اختبارات سلبية: `alg=none`، رمز منتهٍ، HS512 بدل HS256.
+- **بوابة الجودة:** fraud 13 ✅ / personalization 8 ✅ (Python 3.11 في حاوية)، `pip-audit` لا ثغرات، الصور `healthy`، e2e **52/52**.

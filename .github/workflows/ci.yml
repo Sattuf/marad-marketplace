@@ -148,12 +148,12 @@ jobs:
           cache: pip
       - name: personalization-service (partitioned user_events, signals query, partition maintenance)
         run: |
-          pip install -r requirements.txt pytest httpx
+          pip install -r requirements-dev.txt
           python -m pytest -q tests/test_db_integration.py
         working-directory: services/personalization-service
       - name: fraud-service (device/IP upserts, transaction log, index-only risk)
         run: |
-          pip install -r requirements.txt pytest httpx
+          pip install -r requirements-dev.txt
           python -m pytest -q tests/test_db_integration.py
         working-directory: services/fraud-service
 
@@ -174,7 +174,7 @@ jobs:
           python-version: "3.11"
           cache: pip
       - name: Install dependencies
-        run: pip install -r requirements.txt pytest httpx
+        run: pip install -r requirements-dev.txt
         working-directory: services/${{ matrix.service }}
       - name: Tests
         run: python -m pytest -q
