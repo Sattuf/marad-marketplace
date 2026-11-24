@@ -1,4 +1,5 @@
-import { Body, Controller, Post, HttpCode, HttpStatus } from '@nestjs/common';
+import { SessionCookieInterceptor } from '../auth/session-cookie';
+import { Body, Controller, Post, HttpCode, HttpStatus, UseInterceptors } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { OtpService } from './otp.service';
 import { SendOtpDto } from './dto/send-otp.dto';
@@ -20,6 +21,7 @@ export class OtpController {
   }
 
   @Post('verify-otp')
+  @UseInterceptors(SessionCookieInterceptor)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'التحقق من رمز OTP والدخول — Verify OTP code and login' })
   @ApiResponse({ status: 200, type: AuthResponseDto, description: 'نجاح التحقق والدخول' })

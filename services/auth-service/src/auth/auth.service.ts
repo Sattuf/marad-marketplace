@@ -14,7 +14,6 @@ import { UsersService } from '../users/users.service';
 import { RedisService } from '../redis/redis.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { User, AuthProvider, UserStatus, isBlockedStatus } from '../users/entities/user.entity';
 import * as bcrypt from 'bcrypt';
@@ -171,7 +170,7 @@ export class AuthService {
     return this.buildAuthResponse(user, tokens);
   }
 
-  async refresh(refreshTokenDto: RefreshTokenDto): Promise<AuthResponseDto> {
+  async refresh(refreshTokenDto: { refresh_token: string }): Promise<AuthResponseDto> {
     const { refresh_token } = refreshTokenDto;
 
     let payload: any;

@@ -1,4 +1,5 @@
-import { API_URL } from './api/auth';
+import { API_URL, getAccessToken } from './api/auth';
+
 export interface TrackingData {
   listingId?: string;
   categoryId?: string;
@@ -16,7 +17,7 @@ export function trackEvent(
   let token: string | null = null;
 
   if (typeof window !== 'undefined') {
-    token = localStorage.getItem('access_token');
+    token = getAccessToken();
     // Try to extract userId from token or store if needed
     try {
       const userStr = localStorage.getItem('user');

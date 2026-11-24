@@ -5,7 +5,8 @@ import { safeNext } from '@/lib/safe-next';
 
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
-  const token = request.cookies.get('refresh_token')?.value || request.cookies.get('access_token')?.value;
+  // Flag cookie set alongside the HttpOnly refresh cookie (see lib/api/auth.ts).
+  const token = request.cookies.get('marad_session')?.value;
 
   if (!token && requiresAuth(pathname)) {
     const url = new URL('/login', request.url);
@@ -19,7 +20,7 @@ export function proxy(request: NextRequest) {
 
   // Admin pages need a session here; the admin role is checked by the admin layout (from
   // the restored session) and enforced by AdminGuard on every admin API. The proxy cannot
-  // check it: only the refresh token is a cookie, and it carries no role.
+  // check it: the session cookies carry no role.
 
   return NextResponse.next();
 }

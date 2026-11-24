@@ -104,3 +104,10 @@
 - **Grafana:** لوحة "Ma'rad — Services" (حالة UP، CPU، ذاكرة، event-loop lag، heap، معدل/زمن طلبات Python) + مصدر بيانات Jaeger.
 - 5 ملفات مشتركة جديدة أُضيفت لـ `check-shared-copies.mjs` (12 مجموعة، كلها متطابقة).
 - **بوابة الجودة:** كل خدمات Node: tsc + اختبارات + lint ✅؛ Python 15/8 ✅؛ 19 حاوية healthy؛ e2e **52/52**؛ Jaeger يرى **11/11** خدمة، وطلب واحد يعطي trace عبر 5 خدمات (93 span)؛ سجل listings يحمل `requestId` المُرسل من العميل و`trace_id`.
+
+### T8.1 + T8.2 — الواجهة + جلسة الويب الآمنة (S10) ✅
+- T8.1: الواجهة موجودة أصلاً (رحلات المشتري/البائع + لوحة إدارة + لوحة الترتيب A/B)؛ تعمل الآن ضمن compose (T2.2) وتُختبر بالمتصفح.
+- T8.2: auth-service: `SessionCookieInterceptor` على register/login/refresh/verify-otp/google/facebook — مع `X-Session-Cookie: 1` يُنقل رمز التحديث من JSON إلى كوكي `marad_rt` (HttpOnly، Secure، SameSite=Strict، Path=/api/v1/auth) + كوكي علم `marad_session`؛ refresh/logout يقرآن الكوكي؛ logout يمسحه. `COOKIE_DOMAIN`/`COOKIE_SECURE` قابلة للضبط.
+- البوابة: تمرر `cookie`/`Set-Cookie` **لـ auth-service فقط**.
+- الويب: رمز الوصول في ذاكرة الوحدة فقط، refresh أحادي (single-flight)، `SessionRestore` يستعيد الجلسة من الكوكي، middleware يعتمد على `marad_session`، حُذف `js-cookie`.
+- **بوابة الجودة:** auth 31 (+4)، gateway 49، web 61 + lint 0 أخطاء؛ e2e **52/52** (مسار الجوال بالـ body لم يتغير)؛ اختبار Playwright حقيقي: دخول ← الكوكي `HttpOnly/Secure/Strict` ← `localStorage` فارغ ← `document.cookie` لا يحوي إلا العلم ← إعادة تحميل صفحة محمية `/my-listings` تبقى مسجّلاً.

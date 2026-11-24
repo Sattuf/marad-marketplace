@@ -9,12 +9,16 @@ import {
   HttpStatus,
   BadRequestException,
   Ip,
+  UseInterceptors,
+  UnauthorizedException,
+  Res,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { clearedSessionCookies, readRefreshCookie, SessionCookieInterceptor, wantsSessionCookie } from './session-cookie';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
@@ -27,6 +31,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
+  @UseInterceptors(SessionCookieInterceptor)
   @ApiOperation({ summary: 'تسجيل مستخدم جديد — Register a new user' })
   @ApiResponse({ status: 201, type: AuthResponseDto, description: 'تم إنشاء الحساب بنجاح' })
   @ApiResponse({ status: 400, description: 'بيانات غير صالحة' })
@@ -36,6 +41,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @UseInterceptors(SessionCookieInterceptor)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'تسجيل الدخول — User login' })
   @ApiResponse({ status: 200, type: AuthResponseDto, description: 'تم تسجيل الدخول بنجاح' })
@@ -45,12 +51,15 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @UseInterceptors(SessionCookieInterceptor)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'تجديد رمز الجلسة — Refresh JWT tokens' })
   @ApiResponse({ status: 200, type: AuthResponseDto, description: 'تم تجديد الرموز بنجاح' })
   @ApiResponse({ status: 401, description: 'رمز تجديد غير صالح أو مستخدم مسبقاً' })
-  async refresh(@Body() refreshTokenDto: RefreshTokenDto) {
-    return this.authService.refresh(refreshTokenDto);
+  async refresh(@Body() refreshTokenDto: RefreshTokenDto, @Req() req: any) {
+    const refresh_token = refreshTokenDto.refresh_token ?? readRefreshCookie(req);
+    if (!refresh_token) throw new UnauthorizedException('رمز التحديث مطلوب');
+    return this.authService.refresh({ refresh_token });
   }
 
   @ApiBearerAuth()
@@ -59,8 +68,10 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'تسجيل الخروج — Logout' })
   @ApiResponse({ status: 200, description: 'تم تسجيل الخروج بنجاح' })
-  async logout(@Req() req: any, @Body() body: RefreshTokenDto) {
-    await this.authService.logoutWithRefreshToken(req.user.id, body.refresh_token);
+  async logout(@Req() req: any, @Body() body: RefreshTokenDto, @Res({ passthrough: true }) res: any) {
+    const refreshToken = body.refresh_token ?? readRefreshCookie(req);
+    if (refreshToken) await this.authService.logoutWithRefreshToken(req.user.id, refreshToken);
+    if (wantsSessionCookie(req)) res.setHeader('Set-Cookie', clearedSessionCookies());
     return { message: 'تم تسجيل الخروج بنجاح' };
   }
 
@@ -98,6 +109,7 @@ export class AuthController {
   }
 
   @Post('google/token')
+  @UseInterceptors(SessionCookieInterceptor)
   @ApiOperation({ summary: 'الدخول عبر جوجل من تطبيقات الجوال — Login via Google Token' })
   @ApiResponse({ status: 200, type: AuthResponseDto })
   async googleTokenLogin(
@@ -111,6 +123,7 @@ export class AuthController {
   }
 
   @Post('facebook/token')
+  @UseInterceptors(SessionCookieInterceptor)
   @ApiOperation({ summary: 'الدخول عبر فيسبوك من تطبيقات الجوال — Login via Facebook Token' })
   @ApiResponse({ status: 200, type: AuthResponseDto })
   async facebookTokenLogin(@Body('access_token') accessToken: string) {

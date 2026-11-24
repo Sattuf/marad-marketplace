@@ -35,6 +35,13 @@ const FORWARDED_REQUEST_HEADERS = [
   'x-timestamp',
 ];
 
+/**
+ * Only auth-service sees cookies and may set them: the web app's refresh token lives in an
+ * HttpOnly cookie scoped to /api/v1/auth, and no other service needs (or should get) it.
+ */
+const SESSION_COOKIE_SERVICE = 'auth-service';
+const SESSION_REQUEST_HEADERS = ['cookie', 'x-session-cookie'];
+
 /** Response headers passed back to the client. */
 const FORWARDED_RESPONSE_HEADERS = ['content-type', 'cache-control', 'etag', 'location', 'content-disposition'];
 
@@ -168,6 +175,12 @@ export class ProxyController {
       'x-forwarded-host': req.hostname,
       'x-gateway-service': service.name,
     };
+    if (service.name === SESSION_COOKIE_SERVICE) {
+      for (const header of SESSION_REQUEST_HEADERS) {
+        const value = req.headers[header];
+        if (typeof value === 'string') headers[header] = value;
+      }
+    }
     if (isMultipart && req.headers['content-length']) {
       headers['content-length'] = req.headers['content-length'];
     }
@@ -193,6 +206,9 @@ export class ProxyController {
       for (const header of FORWARDED_RESPONSE_HEADERS) {
         const value = response.headers[header];
         if (value !== undefined) res.setHeader(header, value as any);
+      }
+      if (service.name === SESSION_COOKIE_SERVICE && response.headers['set-cookie']) {
+        res.setHeader('set-cookie', response.headers['set-cookie'] as string[]);
       }
 
       const body = toBuffer(response.data);

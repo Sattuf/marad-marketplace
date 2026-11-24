@@ -1,3 +1,4 @@
+import { getAccessToken } from '@/lib/api/auth';
 import { io, Socket } from 'socket.io-client';
 
 let socket: Socket | null = null;
@@ -10,7 +11,7 @@ export const getSocket = (): Socket => {
       transports: ['websocket'],
       // Read the token on every (re)connect: access tokens expire after 15 minutes and
       // the auth interceptor refreshes the stored one.
-      auth: (cb) => cb({ token: typeof window !== 'undefined' ? localStorage.getItem('access_token') : null }),
+      auth: (cb) => cb({ token: getAccessToken() }),
     });
   }
   return socket;
