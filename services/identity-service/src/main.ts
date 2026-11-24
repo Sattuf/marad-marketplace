@@ -16,6 +16,8 @@ async function bootstrap() {
     tracesSampleRate: 0.1,
   });
   app.useGlobalFilters(new SentryExceptionFilter());
+  // Strip unknown properties and enforce DTO constraints (class-validator) on every route.
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.enableCors({ origin: corsOrigins() });
 
   const config = new DocumentBuilder()

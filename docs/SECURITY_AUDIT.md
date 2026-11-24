@@ -38,7 +38,7 @@
 | S6 | Medium | API8 / Docker | كل `Dockerfile` | الحاويات تعمل كـ root، `npm install` بدل `npm ci`، تشغيل `start:dev` بدل صورة إنتاج، لا `HEALTHCHECK` | ✅ صور multi-stage بـ `npm ci`، مستخدم غير root، `HEALTHCHECK`، وفي compose: `read_only` و`cap_drop: ALL` و`no-new-privileges` |
 | S7 | Medium | API8 / سلسلة التوريد | compose | وسوم `latest` (prometheus، grafana، localstack) واعتماديات Python غير مثبتة في personalization | ✅ الصور واعتماديات Python كلها مثبتة الإصدار، وأدوات الاختبار في `requirements-dev.txt` خارج الصور |
 | S8 | Medium | أسرار | compose | كلمة مرور Postgres (`marad_dev_password`) مكتوبة 9 مرات في compose | ✅ من `infra/.env` (يولّده `scripts/gen-env.sh` عشوائياً) |
-| S9 | Medium | API3 / التحقق من المدخلات | identity، messaging، search | لا `ValidationPipe` عام؛ قيود DTO لا تُطبَّق (search يتحقق يدوياً فالأثر محدود) | ⏳ T1.4 |
+| S9 | Medium | API3 / التحقق من المدخلات | identity، messaging، search | لا `ValidationPipe` عام؛ قيود DTO لا تُطبَّق (search يتحقق يدوياً فالأثر محدود) | ✅ `ValidationPipe({whitelist, transform})` في الخدمات الثلاث + مزخرفات class-validator لكل DTOs البحث وDTO لفك تشفير KYC + 4 اختبارات |
 | S10 | Medium | API2 | `apps/web/src/lib/api/auth.ts` | رمز الوصول في `localStorage` ورمز التحديث في كوكي يقرؤه JS (ليس httpOnly) → سرقة بأي XSS (H10 السابق) | ⏳ T3.x |
 | S11 | Medium | API2 / تصميم | كل الخدمات | سر JWT متماثل (HS256) مشترك: اختراق أي خدمة يسمح بسكّ رموز مدير. الحل: RS256/EdDSA، auth يوقّع والباقي يتحقق بالمفتاح العام | ⏳ T4.2 |
 | S12 | Low | أسرار | `apps/mobile/android/app/google-services.json` (commit `68b4035`) | مفتاح Firebase Android API في git. مفاتيح Firebase للعميل ليست سرية بطبيعتها، لكن يجب تقييدها (package name + SHA-1) وتفعيل App Check | ⚠️ موثق — إجراء يدوي في Google Cloud Console |

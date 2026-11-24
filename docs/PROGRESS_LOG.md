@@ -34,3 +34,10 @@
 - تغيّر سلوك: FastAPI ≥ 0.120 يعيد **401** بدل 403 عند غياب رمز Bearer (مطابق لـ RFC 7235) — حُدّث اختباران.
 - أُضيفت 3 اختبارات سلبية: `alg=none`، رمز منتهٍ، HS512 بدل HS256.
 - **بوابة الجودة:** fraud 13 ✅ / personalization 8 ✅ (Python 3.11 في حاوية)، `pip-audit` لا ثغرات، الصور `healthy`، e2e **52/52**.
+
+### T1.4 — التحقق من المدخلات ✅
+- `ValidationPipe({ whitelist: true, transform: true })` عام في search وmessaging وidentity (كانت الوحيدة بدونه).
+- اكتُشف أن الخدمات الثلاث لا تُعلن `class-validator`/`class-transformer` في `package.json` (تعمل فقط بفضل hoisting في مساحة العمل) → أُضيفت صراحة.
+- DTOs البحث الخمسة صارت بمزخرفات (أنواع، أطوال، `IsUUID`، `IsLatitude`، `IsIn(['A','B'])`) مع الإبقاء على التقييد اللطيف (clamp) في الخدمة كي لا تنكسر قيم صالحة. DTO جديد `DecryptKycDto`.
+- **بوابة الجودة:** search 26 (4 جديدة) / messaging 10 / identity 9؛ typecheck نظيف؛ e2e **52/52**؛ طلب بـ `variant: "Z"` → 400 برسالة واضحة.
+- **اكتمال المرحلة 1 (الثغرات الحرجة والعالية):** لم تبقَ ثغرة حرجة أو عالية مفتوحة في SECURITY_AUDIT؛ المتبقي Medium (S10 رموز الويب، S11 المفتاح المتماثل) ومجدول في T8.2 وT4.2.
