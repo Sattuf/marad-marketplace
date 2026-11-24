@@ -331,6 +331,27 @@ services:
         condition: service_healthy
 
   # ==========================================================================
+  # Web app (Next.js)
+  # ==========================================================================
+
+  web:
+    <<: *service
+    build:
+      context: ..
+      dockerfile: infra/docker/web.Dockerfile
+      <<: *build-secrets
+      args:
+        # Inlined into the browser bundle: the addresses as the browser sees them.
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:3000/api/v1}
+        NEXT_PUBLIC_SOCKET_URL: ${PUBLIC_SOCKET_URL:-http://localhost:3004}
+        NEXT_PUBLIC_GRAFANA_URL: http://localhost:3200
+    ports:
+      - "${DEVICE_BIND:-127.0.0.1}:3100:3100"
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+
+  # ==========================================================================
   # Monitoring
   # ==========================================================================
 

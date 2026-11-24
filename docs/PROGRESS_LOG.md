@@ -41,3 +41,12 @@
 - DTOs البحث الخمسة صارت بمزخرفات (أنواع، أطوال، `IsUUID`، `IsLatitude`، `IsIn(['A','B'])`) مع الإبقاء على التقييد اللطيف (clamp) في الخدمة كي لا تنكسر قيم صالحة. DTO جديد `DecryptKycDto`.
 - **بوابة الجودة:** search 26 (4 جديدة) / messaging 10 / identity 9؛ typecheck نظيف؛ e2e **52/52**؛ طلب بـ `variant: "Z"` → 400 برسالة واضحة.
 - **اكتمال المرحلة 1 (الثغرات الحرجة والعالية):** لم تبقَ ثغرة حرجة أو عالية مفتوحة في SECURITY_AUDIT؛ المتبقي Medium (S10 رموز الويب، S11 المفتاح المتماثل) ومجدول في T8.2 وT4.2.
+
+### T2.2 + T2.3 — الويب ضمن compose + بيانات تجريبية ✅
+- `infra/docker/web.Dockerfile`: Next.js بمخرجات `standalone` (298MB)، غير root، healthcheck؛ `next.config.ts`: ترويسات أمان (nosniff، DENY، Referrer-Policy، Permissions-Policy) وإخفاء `X-Powered-By`.
+- **3 أعطال اكتُشفت وأُصلحت:**
+  1. `next/font/google` يحمّل الخطوط من Google وقت البناء → يفشل دون إنترنت/خلف بروكسي. الحل: خطوط مستضافة ذاتياً من npm (`@fontsource-variable/cairo|inter`) — لا طلبات لطرف ثالث من متصفح الزائر أيضاً.
+  2. الويب يعتمد على `@types/jest` عبر hoisting فقط → أُضيف لـ devDependencies.
+  3. **كل صور الإعلانات كانت محجوبة في الويب**: helmet في البوابة يضع `Cross-Origin-Resource-Policy: same-origin`، والويب (:3100) يحمّل الصور من البوابة (:3000). الحل: `same-site` (المنفذ لا يدخل في "الموقع"). تحقق بلقطة Playwright: 0 أخطاء متصفح.
+- `scripts/seed-demo.mjs` + `make seed`: 3 حسابات (بائع، مشترٍ، مشرف) و12 إعلاناً بصور، عبر الـ API العامة؛ ترقية المشرف عبر SQL لأنه لا يوجد (عمداً) endpoint يمنح دور admin. Idempotent (أول نسخة لم تكن كذلك بسبب كاش البوابة 30 ثانية — أُصلح).
+- **بوابة الجودة:** web tsc + 61 اختباراً + `next build`؛ gateway tsc؛ 18 حاوية healthy؛ seed مرتين بلا تكرار.

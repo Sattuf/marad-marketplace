@@ -33,7 +33,14 @@ async function bootstrap() {
   // otherwise clients could spoof X-Forwarded-For and dodge the rate limiter.
   app.getHttpAdapter().getInstance().set('trust proxy', parseInt(process.env.TRUST_PROXY_HOPS || '0', 10));
   // Swagger UI needs inline scripts, so CSP is relaxed outside production only.
-  app.use(helmet({ contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false }));
+  // CORP same-site: the web app (another port or subdomain of the same site) must be able to
+  // display images served under /media; helmet's default (same-origin) blocked every one.
+  app.use(
+    helmet({
+      contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+      crossOriginResourcePolicy: { policy: 'same-site' },
+    }),
+  );
 
   // Webhooks are verified against the exact bytes the vendor signed, so keep them raw.
   app.use(['/api/v1/promotions/webhook', '/api/v1/identity/kyc/webhook'], express.raw({ type: 'application/json', limit: '1mb' }));
