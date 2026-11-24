@@ -34,17 +34,17 @@
 | S2 | **High** | API8 | `users-service`، `moderation-service` | 2 حرجة و13 عالية لكل منهما (lockfile مستقل) | ⏳ T1.2 |
 | S3 | **High** | API2 | `fraud-service` | `python-jose 3.3.0`: ثغرات خلط الخوارزمية وDoS (PYSEC-2024-232/233) وثغرات بلا إصلاح (PYSEC-2025-185، 2026-4298)، و`ecdsa` بلا إصلاح | ⏳ T1.3 (الانتقال إلى PyJWT) |
 | S4 | **High** | API8 | `fraud-service` | `starlette 0.38.6` (عبر fastapi 0.115.0): عدة ثغرات DoS/multipart | ⏳ T1.3 |
-| S5 | **High** | API8 / Docker | `infra/docker-compose.yml` | `localstack` يربط `/var/run/docker.sock` → صلاحية root على المضيف لأي اختراق للحاوية | ⏳ T1.1 |
-| S6 | Medium | API8 / Docker | كل `Dockerfile` | الحاويات تعمل كـ root، `npm install` بدل `npm ci`، تشغيل `start:dev` بدل صورة إنتاج، لا `HEALTHCHECK` | ⏳ T2.1 |
-| S7 | Medium | API8 / سلسلة التوريد | compose | وسوم `latest` (prometheus، grafana، localstack) واعتماديات Python غير مثبتة في personalization | ⏳ T1.1 / T1.3 |
-| S8 | Medium | أسرار | compose | كلمة مرور Postgres (`marad_dev_password`) مكتوبة 9 مرات في compose | ⏳ T1.1 (نقلها إلى `.env`) |
+| S5 | **High** | API8 / Docker | `infra/docker-compose.yml` | `localstack` يربط `/var/run/docker.sock` → صلاحية root على المضيف لأي اختراق للحاوية | ✅ أُزيل الربط (KMS لا يحتاجه) |
+| S6 | Medium | API8 / Docker | كل `Dockerfile` | الحاويات تعمل كـ root، `npm install` بدل `npm ci`، تشغيل `start:dev` بدل صورة إنتاج، لا `HEALTHCHECK` | ✅ صور multi-stage بـ `npm ci`، مستخدم غير root، `HEALTHCHECK`، وفي compose: `read_only` و`cap_drop: ALL` و`no-new-privileges` |
+| S7 | Medium | API8 / سلسلة التوريد | compose | وسوم `latest` (prometheus، grafana، localstack) واعتماديات Python غير مثبتة في personalization | 🔄 الصور مثبتة (✅)؛ اعتماديات Python ⏳ T1.3 |
+| S8 | Medium | أسرار | compose | كلمة مرور Postgres (`marad_dev_password`) مكتوبة 9 مرات في compose | ✅ من `infra/.env` (يولّده `scripts/gen-env.sh` عشوائياً) |
 | S9 | Medium | API3 / التحقق من المدخلات | identity، messaging، search | لا `ValidationPipe` عام؛ قيود DTO لا تُطبَّق (search يتحقق يدوياً فالأثر محدود) | ⏳ T1.4 |
 | S10 | Medium | API2 | `apps/web/src/lib/api/auth.ts` | رمز الوصول في `localStorage` ورمز التحديث في كوكي يقرؤه JS (ليس httpOnly) → سرقة بأي XSS (H10 السابق) | ⏳ T3.x |
 | S11 | Medium | API2 / تصميم | كل الخدمات | سر JWT متماثل (HS256) مشترك: اختراق أي خدمة يسمح بسكّ رموز مدير. الحل: RS256/EdDSA، auth يوقّع والباقي يتحقق بالمفتاح العام | ⏳ T4.2 |
 | S12 | Low | أسرار | `apps/mobile/android/app/google-services.json` (commit `68b4035`) | مفتاح Firebase Android API في git. مفاتيح Firebase للعميل ليست سرية بطبيعتها، لكن يجب تقييدها (package name + SHA-1) وتفعيل App Check | ⚠️ موثق — إجراء يدوي في Google Cloud Console |
-| S13 | Info | — | `services/*/README.md` | gitleaks: `token=abc123def456` في قالب NestJS README — **إيجابية كاذبة** | ✅ أُضيف `.gitleaks.toml` (T1.1) |
-| S14 | Low | API4 | compose | منافذ الخدمات الداخلية (3004–3008، 8001–8002) منشورة على `127.0.0.1` فتتجاوز Rate limit البوابة محلياً | ⏳ T2.1 (إبقاء البوابة + المحادثات فقط) |
-| S15 | Low | API9 | users-service | المنفذ الافتراضي 3000 يتعارض مع البوابة عند غياب `PORT` | ⏳ T2.1 |
+| S13 | Info | — | `services/*/README.md` | gitleaks: a placeholder CircleCI badge token في قالب NestJS README — **إيجابية كاذبة** | ✅ أُضيف `.gitleaks.toml` (T1.1) |
+| S14 | Low | API4 | compose | منافذ الخدمات الداخلية (3004–3008، 8001–8002) منشورة على `127.0.0.1` فتتجاوز Rate limit البوابة محلياً | ✅ لا يُنشر إلا البوابة وsocket المحادثات |
+| S15 | Low | API9 | users-service | المنفذ الافتراضي 3000 يتعارض مع البوابة عند غياب `PORT` | ⚠️ compose وHelm يمرران `PORT` دائماً |
 
 **gitleaks (تاريخ git كامل، 41 commit):** 5 نتائج — 4 إيجابيات كاذبة (S13) + مفتاح Firebase (S12).
 لا أسرار خادم (JWT، قواعد بيانات، AWS، Stripe) في التاريخ. الأسرار الافتراضية القديمة (`your-secret-key`...)

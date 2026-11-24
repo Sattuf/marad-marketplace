@@ -7,3 +7,6 @@ venv/
 .env
 .env.*
 !.env.example
+tests/
+.pytest_cache/
+Dockerfile

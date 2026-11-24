@@ -1,0 +1,2 @@
+# Reviewed false positive: the audit report quoted the NestJS README placeholder token (S13).
+23389aaabfbc118da78715c449d2827767cb257c:docs/SECURITY_AUDIT.md:generic-api-key:45
