@@ -1,0 +1,7 @@
+Ma'rad Al-Ashya' {{ .Chart.AppVersion }} installed as "{{ .Release.Name }}".
+
+  API:  https://{{ .Values.ingress.apiHost }}/api/v1   (health: /health)
+  Web:  https://{{ .Values.ingress.webHost }}
+
+Before the first install, create the secrets "{{ .Values.secrets.app }}" and
+"{{ .Values.secrets.authSigning }}" (keys: docs/DEPLOYMENT.md).
