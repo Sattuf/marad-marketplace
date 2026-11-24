@@ -13,7 +13,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { createHash, timingSafeEqual } from 'crypto';
+import { createHash, createPublicKey, KeyObject, timingSafeEqual } from 'crypto';
 
 const MIN_PRODUCTION_SECRET_LENGTH = 32;
 
@@ -85,6 +85,53 @@ export interface AuthUser {
 
 const jwtService = new JwtService();
 
+/** Claims every access token must carry (set by auth-service, checked by every service). */
+export const ACCESS_TOKEN_ISSUER = 'marad-auth';
+export const ACCESS_TOKEN_AUDIENCE = 'marad-api';
+
+let publicKeys: Map<string, KeyObject> | null = null;
+
+/**
+ * Access tokens are signed by auth-service with an RSA private key (RS256) that no other
+ * service holds; every service verifies them with the public keys in JWT_PUBLIC_JWKS
+ * (a JWK Set on one line: {"keys":[{kty,n,e,kid,...}]}). Two keys may be listed during a
+ * rotation; the token's `kid` header selects one, and an unknown `kid` is rejected.
+ * Loaded once and validated at boot, so a bad key fails the deployment, not every request.
+ */
+export function loadPublicKeys(): Map<string, KeyObject> {
+  if (publicKeys) return publicKeys;
+  const raw = process.env.JWT_PUBLIC_JWKS;
+  if (!raw) throw new Error('Missing required environment variable JWT_PUBLIC_JWKS');
+  let set: { keys?: Array<Record<string, unknown>> };
+  try {
+    set = JSON.parse(raw);
+  } catch {
+    throw new Error('JWT_PUBLIC_JWKS is not valid JSON');
+  }
+  const keys = new Map<string, KeyObject>();
+  for (const jwk of set.keys ?? []) {
+    if (typeof jwk.kid !== 'string' || jwk.kty !== 'RSA' || (jwk.alg !== undefined && jwk.alg !== 'RS256')) {
+      throw new Error('JWT_PUBLIC_JWKS: every key needs a kid, kty "RSA" and alg "RS256"');
+    }
+    keys.set(jwk.kid, createPublicKey({ key: jwk as any, format: 'jwk' }));
+  }
+  if (keys.size === 0 || keys.size > 2) throw new Error('JWT_PUBLIC_JWKS must contain one or two keys');
+  publicKeys = keys;
+  return keys;
+}
+
+/** Tests only: forget the cached keys after changing JWT_PUBLIC_JWKS. */
+export function resetPublicKeysCache(): void {
+  publicKeys = null;
+}
+
+/** The public key matching the token's `kid` header, or null. */
+export function publicKeyFor(token: string): KeyObject | null {
+  const decoded: any = jwtService.decode(token, { complete: true });
+  const kid = decoded?.header?.kid;
+  return typeof kid === 'string' ? loadPublicKeys().get(kid) ?? null : null;
+}
+
 export function extractBearerToken(header: unknown): string | null {
   if (typeof header !== 'string') return null;
   const [scheme, token] = header.split(' ');
@@ -92,13 +139,17 @@ export function extractBearerToken(header: unknown): string | null {
   return token;
 }
 
-/** Verifies signature + expiry of an access token issued by auth-service. */
+/** Verifies signature (RS256 only), expiry, issuer and audience of an access token. */
 export function verifyAccessToken(token: string): AuthUser {
   let payload: any;
   try {
+    const key = publicKeyFor(token);
+    if (!key) throw new Error('unknown key');
     payload = jwtService.verify(token, {
-      secret: requireSecret('JWT_ACCESS_SECRET'),
-      algorithms: ['HS256'],
+      publicKey: key as any,
+      algorithms: ['RS256'],
+      issuer: ACCESS_TOKEN_ISSUER,
+      audience: ACCESS_TOKEN_AUDIENCE,
     });
   } catch {
     throw new UnauthorizedException('Invalid or expired token');

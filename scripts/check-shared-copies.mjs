@@ -29,13 +29,17 @@ for (const file of SHARED) {
 }
 // Python services: the unified error handlers.
 {
-  const pyCopies = ['fraud-service/errors.py', 'personalization-service/app/core/errors.py'].map((f) => join(services, f));
-  const pyHashes = new Set(pyCopies.map((p) => createHash('sha256').update(readFileSync(p)).digest('hex')));
-  if (pyHashes.size > 1) {
-    failed = true;
-    console.error('✗ Python errors.py differs between fraud-service and personalization-service');
-  } else {
-    console.log('✓ errors.py: 2 identical Python copies');
+  for (const [a, b] of [
+    ['fraud-service/errors.py', 'personalization-service/app/core/errors.py'],
+    ['fraud-service/jwt_keys.py', 'personalization-service/app/core/jwt_keys.py'],
+  ]) {
+    const pyHashes = new Set([a, b].map((f) => createHash('sha256').update(readFileSync(join(services, f))).digest('hex')));
+    if (pyHashes.size > 1) {
+      failed = true;
+      console.error(`✗ ${a} and ${b} differ`);
+    } else {
+      console.log(`✓ ${a.split('/').pop()}: 2 identical Python copies`);
+    }
   }
 }
 process.exit(failed ? 1 : 0);

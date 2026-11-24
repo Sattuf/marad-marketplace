@@ -8,6 +8,7 @@ from app.services.event_service import event_service
 from app.services.recommendation_service import recommendation_service
 from app.routers import events, recommendations
 from app.core.errors import install_error_handlers
+from app.core.jwt_keys import public_keys
 import os
 import sentry_sdk
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -32,6 +33,7 @@ async def _maintain_partitions_forever():
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    public_keys()  # fails at boot on a missing or malformed JWT_PUBLIC_JWKS
     await db.connect()
     maintenance = asyncio.create_task(_maintain_partitions_forever())
     try:

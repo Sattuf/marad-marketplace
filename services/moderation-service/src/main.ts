@@ -5,10 +5,11 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import * as Sentry from '@sentry/node';
 import { SentryExceptionFilter } from './filters/sentry-exception.filter';
-import { assertRequiredSecrets, corsOrigins, isProduction } from './common/security';
+import { assertRequiredSecrets, loadPublicKeys, corsOrigins, isProduction } from './common/security';
 
 async function bootstrap() {
-  assertRequiredSecrets('JWT_ACCESS_SECRET', 'INTERNAL_SECRET');
+  assertRequiredSecrets('INTERNAL_SECRET');
+  loadPublicKeys(); // fails at boot on a missing or malformed JWT_PUBLIC_JWKS
   const app = await NestFactory.create(AppModule);
   
   Sentry.init({

@@ -5,10 +5,11 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 
 import * as Sentry from '@sentry/node';
 import { SentryExceptionFilter } from './filters/sentry-exception.filter';
-import { assertRequiredSecrets, corsOrigins, isProduction } from './common/security';
+import { assertRequiredSecrets, loadPublicKeys, corsOrigins, isProduction } from './common/security';
 
 async function bootstrap() {
-  assertRequiredSecrets('JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET', 'INTERNAL_SECRET');
+  assertRequiredSecrets('JWT_REFRESH_SECRET', 'INTERNAL_SECRET');
+  loadPublicKeys(); // fails at boot on a missing or malformed JWT_PUBLIC_JWKS
   const app = await NestFactory.create(AppModule);
   // Only reachable through the gateway, which sets X-Forwarded-For: trust that one hop
   // (TRUST_PROXY_HOPS=1 in docker-compose) so lockouts are keyed by the real client IP.

@@ -40,10 +40,11 @@
 | S8 | Medium | أسرار | compose | كلمة مرور Postgres (`marad_dev_password`) مكتوبة 9 مرات في compose | ✅ من `infra/.env` (يولّده `scripts/gen-env.sh` عشوائياً) |
 | S9 | Medium | API3 / التحقق من المدخلات | identity، messaging، search | لا `ValidationPipe` عام؛ قيود DTO لا تُطبَّق (search يتحقق يدوياً فالأثر محدود) | ✅ `ValidationPipe({whitelist, transform})` في الخدمات الثلاث + مزخرفات class-validator لكل DTOs البحث وDTO لفك تشفير KYC + 4 اختبارات |
 | S10 | Medium | API2 | `apps/web/src/lib/api/auth.ts` | رمز الوصول في `localStorage` ورمز التحديث في كوكي يقرؤه JS (ليس httpOnly) → سرقة بأي XSS (H10 السابق) | ⏳ T3.x |
-| S11 | Medium | API2 / تصميم | كل الخدمات | سر JWT متماثل (HS256) مشترك: اختراق أي خدمة يسمح بسكّ رموز مدير. الحل: RS256/EdDSA، auth يوقّع والباقي يتحقق بالمفتاح العام | ⏳ T4.2 |
+| S11 | Medium | API2 / تصميم | كل الخدمات | سر JWT متماثل (HS256) مشترك: اختراق أي خدمة يسمح بسكّ رموز مدير. الحل: RS256/EdDSA، auth يوقّع والباقي يتحقق بالمفتاح العام | ✅ RS256 + JWKS بـ `kid`، و`iss`/`aud` في كل الـ 11 مُتحقِّقاً، refresh بجمهور منفصل؛ اختبارات: خلط الخوارزمية، مفتاح RSA آخر، kid مجهول، aud/iss خاطئ، `alg=none` (ADR-007) |
 | S12 | Low | أسرار | `apps/mobile/android/app/google-services.json` (commit `68b4035`) | مفتاح Firebase Android API في git. مفاتيح Firebase للعميل ليست سرية بطبيعتها، لكن يجب تقييدها (package name + SHA-1) وتفعيل App Check | ⚠️ موثق — إجراء يدوي في Google Cloud Console |
 | S13 | Info | — | `services/*/README.md` | gitleaks: a placeholder CircleCI badge token في قالب NestJS README — **إيجابية كاذبة** | ✅ أُضيف `.gitleaks.toml` (T1.1) |
 | S14 | Low | API4 | compose | منافذ الخدمات الداخلية (3004–3008، 8001–8002) منشورة على `127.0.0.1` فتتجاوز Rate limit البوابة محلياً | ✅ لا يُنشر إلا البوابة وsocket المحادثات |
+| S16 | Medium | API5 / عزل الخدمات | compose | (وجده المراجع المستقل لـ T4.2) كل الخدمات تتصل بـ Postgres بالمستخدم نفسه وتتشارك `INTERNAL_SECRET` واحداً: اختراق أي خدمة يتيح `UPDATE users SET role='admin'` أو استدعاء مسارات داخلية لخدمات أخرى. T4.2 أغلق أرخص طريق (سكّ الرموز) لا كلها. الحل: دور Postgres لكل خدمة بصلاحيات على جداولها فقط، وسر داخلي لكل زوج (أو mTLS) | ⏳ عمل مستقبلي موثق |
 | S15 | Low | API9 | users-service | المنفذ الافتراضي 3000 يتعارض مع البوابة عند غياب `PORT` | ⚠️ compose وHelm يمرران `PORT` دائماً |
 
 **gitleaks (تاريخ git كامل، 41 commit):** 5 نتائج — 4 إيجابيات كاذبة (S13) + مفتاح Firebase (S12).

@@ -20,7 +20,18 @@ import { User, AuthProvider, UserStatus, isBlockedStatus } from '../users/entiti
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { OAuth2Client } from 'google-auth-library';
-import { internalHeaders, requireSecret } from '../common/security';
+import { ACCESS_TOKEN_AUDIENCE, ACCESS_TOKEN_ISSUER, internalHeaders, requireSecret } from '../common/security';
+import { loadSigningKey, SigningKey } from './signing-key';
+
+/** Refresh tokens: HS256, verified only here, with their own audience so they can never
+ * be accepted as access tokens (and access tokens never as refresh tokens). */
+const REFRESH_TOKEN_AUDIENCE = 'marad-refresh';
+const REFRESH_VERIFY_OPTIONS = (secret: string) => ({
+  secret,
+  algorithms: ['HS256' as const],
+  issuer: ACCESS_TOKEN_ISSUER,
+  audience: REFRESH_TOKEN_AUDIENCE,
+});
 
 // Per identifier+IP: stops a single attacker quickly without letting anyone lock out a victim.
 const LOGIN_MAX_FAILURES_PER_IP = 5;
@@ -44,7 +55,7 @@ export interface OAuthProfile {
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
-  private readonly jwtAccessSecret: string;
+  private readonly signingKey: SigningKey;
   private readonly jwtRefreshSecret: string;
 
   constructor(
@@ -53,11 +64,8 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {
-    this.jwtAccessSecret = requireSecret('JWT_ACCESS_SECRET');
+    this.signingKey = loadSigningKey();
     this.jwtRefreshSecret = requireSecret('JWT_REFRESH_SECRET');
-    if (this.jwtAccessSecret === this.jwtRefreshSecret) {
-      throw new Error('JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must differ');
-    }
   }
 
   async register(registerDto: RegisterDto, ipAddress: string = ''): Promise<AuthResponseDto> {
@@ -168,9 +176,7 @@ export class AuthService {
 
     let payload: any;
     try {
-      payload = await this.jwtService.verifyAsync(refresh_token, {
-        secret: this.jwtRefreshSecret,
-      });
+      payload = await this.jwtService.verifyAsync(refresh_token, REFRESH_VERIFY_OPTIONS(this.jwtRefreshSecret));
     } catch (error) {
       throw new UnauthorizedException('رمز تجديد غير صالح أو منتهي الصلاحية');
     }
@@ -217,7 +223,7 @@ export class AuthService {
   /** Revokes the session behind a refresh token, if it belongs to this user. Never throws. */
   async logoutWithRefreshToken(userId: string, refreshToken: string): Promise<void> {
     try {
-      const payload = await this.jwtService.verifyAsync(refreshToken, { secret: this.jwtRefreshSecret });
+      const payload = await this.jwtService.verifyAsync(refreshToken, REFRESH_VERIFY_OPTIONS(this.jwtRefreshSecret));
       if (payload?.sub === userId && payload.jti) {
         await this.logout(userId, payload.jti);
       }
@@ -413,7 +419,11 @@ export class AuthService {
         role: user.role,
       },
       {
-        secret: this.jwtAccessSecret,
+        privateKey: this.signingKey.privateKey as any,
+        algorithm: 'RS256',
+        keyid: this.signingKey.kid,
+        issuer: ACCESS_TOKEN_ISSUER,
+        audience: ACCESS_TOKEN_AUDIENCE,
         expiresIn: '15m',
       },
     );
@@ -426,6 +436,9 @@ export class AuthService {
       },
       {
         secret: this.jwtRefreshSecret,
+        algorithm: 'HS256',
+        issuer: ACCESS_TOKEN_ISSUER,
+        audience: REFRESH_TOKEN_AUDIENCE,
         expiresIn: '7d',
       },
     );

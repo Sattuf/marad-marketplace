@@ -4,6 +4,7 @@ import database
 
 from routers import device, transaction, risk, admin
 from security import require_secret
+from jwt_keys import public_keys
 from errors import install_error_handlers
 
 import os
@@ -14,7 +15,7 @@ sentry_sdk.init(dsn=os.getenv("SENTRY_DSN"), traces_sample_rate=0.1)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    require_secret("JWT_ACCESS_SECRET")
+    public_keys()  # fails at boot on a missing or malformed JWT_PUBLIC_JWKS
     require_secret("INTERNAL_SECRET")
     await database.connect_to_postgres()
     yield
