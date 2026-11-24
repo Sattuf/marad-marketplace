@@ -2,6 +2,12 @@
 /* رموز التصميم المولَّدة — Design tokens (packages/design-tokens) */
 @import "../styles/tokens.css";
 
+/* Self-hosted variable fonts (@fontsource-variable, imported in app/layout.tsx). */
+:root {
+  --font-cairo: "Cairo Variable";
+  --font-inter: "Inter Variable";
+}
+
 /* dark: follows the OS unless the user chose a theme via <html data-theme="…"> */
 @custom-variant dark {
   &:where([data-theme='dark'], [data-theme='dark'] *) {

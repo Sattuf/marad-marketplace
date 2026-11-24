@@ -1,17 +1,10 @@
 import type { Metadata } from "next";
-import { Inter, Cairo } from "next/font/google";
+// Self-hosted fonts (bundled from npm): no build-time download and no request to a
+// third-party font CDN from the visitor's browser.
+import "@fontsource-variable/cairo";
+import "@fontsource-variable/inter";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
-
-const cairo = Cairo({
-  variable: "--font-cairo",
-  subsets: ["arabic", "latin"],
-});
 
 export const metadata: Metadata = {
   title: "معرض الأشياء — سوق البيع والشراء",
@@ -28,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ar" dir="rtl" className={`${inter.variable} ${cairo.variable}`} suppressHydrationWarning>
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
         {/* Applies the saved theme before first paint to avoid a light/dark flash. */}
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
