@@ -16,6 +16,7 @@ import { Request } from 'express';
 import { KycService } from '../services/kyc.service';
 import { AdminGuard, AuthUser, JwtAuthGuard } from '../common/security';
 import { verifyWebhookSignature } from '../services/webhook-signature';
+import { DecryptKycDto } from './decrypt-kyc.dto';
 
 type AuthedRequest = Request & { user: AuthUser };
 
@@ -63,7 +64,7 @@ export class KycController {
 
   @Post('admin/decrypt')
   @UseGuards(AdminGuard)
-  async decryptAdmin(@Req() req: AuthedRequest, @Body() body: { sessionId: string }) {
+  async decryptAdmin(@Req() req: AuthedRequest, @Body() body: DecryptKycDto) {
     return this.kycService.decryptData(body?.sessionId, req.user.userId);
   }
 }
