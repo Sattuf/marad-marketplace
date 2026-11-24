@@ -55,28 +55,19 @@ export class ReportsService {
     
     await this.reportsRepository.save(report);
 
-    // Update counts
-    let count = await this.reportCountsRepository.findOne({
-      where: {
-        target_type: createDto.target_type,
-        target_id: createDto.target_id,
-      }
-    });
-
-    if (!count) {
-      count = this.reportCountsRepository.create({
-        target_type: createDto.target_type,
-        target_id: createDto.target_id,
-        pending_count: 1,
-        total_count: 1,
-      });
-    } else {
-      count.pending_count += 1;
-      count.total_count += 1;
-      count.last_reported_at = new Date();
-    }
-    
-    await this.reportCountsRepository.save(count);
+    // One atomic upsert: concurrent reports on the same target cannot lose an increment
+    // (the previous read-modify-write did, and could miss the auto-review threshold).
+    const [{ pending_count: pendingCount }] = await this.reportCountsRepository.query(
+      `INSERT INTO report_counts (target_type, target_id, pending_count, total_count, last_reported_at)
+       VALUES ($1, $2, 1, 1, now())
+       ON CONFLICT (target_type, target_id) DO UPDATE
+         SET pending_count = report_counts.pending_count + 1,
+             total_count = report_counts.total_count + 1,
+             last_reported_at = now()
+       RETURNING pending_count`,
+      [createDto.target_type, createDto.target_id],
+    );
+    const count = { pending_count: Number(pendingCount) };
 
     // Enqueue if thresholds met
     if (createDto.target_type === 'listing' && count.pending_count >= 3) {
@@ -154,13 +145,11 @@ export class ReportsService {
 
     // Only an open → closed transition leaves the queue (re-reviews must not drift the count).
     if (wasOpen && (status === 'resolved' || status === 'dismissed')) {
-      const count = await this.reportCountsRepository.findOne({
-        where: { target_type: report.target_type, target_id: report.target_id },
-      });
-      if (count && count.pending_count > 0) {
-        count.pending_count -= 1;
-        await this.reportCountsRepository.save(count);
-      }
+      await this.reportCountsRepository.query(
+        `UPDATE report_counts SET pending_count = pending_count - 1
+         WHERE target_type = $1 AND target_id = $2 AND pending_count > 0`,
+        [report.target_type, report.target_id],
+      );
     }
     return saved;
   }

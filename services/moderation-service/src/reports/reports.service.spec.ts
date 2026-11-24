@@ -21,6 +21,7 @@ describe('ReportsService', () => {
     create: jest.fn(),
     save: jest.fn(),
     findOne: jest.fn(),
+    query: jest.fn(),
   };
 
   const mockQueue = {
@@ -80,14 +81,27 @@ describe('ReportsService', () => {
       mockReportsRepo.create.mockReturnValue({ id: 'report1', target_type: 'listing', target_id: 'list1' });
       mockReportsRepo.save.mockResolvedValue({ id: 'report1' });
 
-      mockReportCountsRepo.findOne.mockResolvedValueOnce({ pending_count: 0, total_count: 0 });
-      mockReportCountsRepo.save.mockResolvedValue({});
+      mockReportCountsRepo.query.mockResolvedValueOnce([{ pending_count: 1 }]);
 
       await service.createReport('user1', { target_type: 'listing', target_id: 'list1', reason: 'spam' });
 
       expect(mockReportsRepo.create).toHaveBeenCalled();
       expect(mockReportsRepo.save).toHaveBeenCalled();
-      expect(mockReportCountsRepo.save).toHaveBeenCalled();
+      const [sql, params] = mockReportCountsRepo.query.mock.calls[0];
+      expect(sql).toMatch(/ON CONFLICT \(target_type, target_id\) DO UPDATE/);
+      expect(params).toEqual(['listing', 'list1']);
+      expect(mockQueue.add).not.toHaveBeenCalled();
+    });
+
+    it('queues an auto review when the atomic count reaches the listing threshold', async () => {
+      mockReportsRepo.findOne.mockResolvedValueOnce(null);
+      mockReportsRepo.create.mockReturnValue({ id: 'report3' });
+      mockReportsRepo.save.mockResolvedValue({ id: 'report3' });
+      mockReportCountsRepo.query.mockResolvedValueOnce([{ pending_count: 3 }]);
+
+      await service.createReport('user9', { target_type: 'listing', target_id: 'list1', reason: 'spam' });
+
+      expect(mockQueue.add).toHaveBeenCalledWith('auto_review_listing', { target_id: 'list1' });
     });
   });
 
@@ -96,12 +110,10 @@ describe('ReportsService', () => {
       mockReportsRepo.findOne.mockResolvedValueOnce({ id: 'report1', status: 'pending', target_type: 'user', target_id: 'user2' });
       mockReportsRepo.save.mockResolvedValue({ id: 'report1', status: 'resolved' });
 
-      mockReportCountsRepo.findOne.mockResolvedValueOnce({ pending_count: 1 });
-
       await service.reviewReport('report1', { status: 'resolved', action_taken: 'user_banned' }, 'admin1');
 
       expect(mockReportsRepo.save).toHaveBeenCalled();
-      expect(mockReportCountsRepo.save).toHaveBeenCalled();
+      expect(mockReportCountsRepo.query.mock.calls[0][0]).toMatch(/pending_count - 1[\s\S]*pending_count > 0/);
       expect(mockHttpService.put).toHaveBeenCalled();
     });
   });
@@ -115,7 +127,7 @@ describe('ReportsService', () => {
 
       await expect(service.reviewReport('r1', { status: 'resolved', action_taken: 'listing_removed' }, 'admin')).rejects.toThrow(BadGatewayException);
       expect(mockReportsRepo.save).not.toHaveBeenCalled();
-      expect(mockReportCountsRepo.save).not.toHaveBeenCalled();
+      expect(mockReportCountsRepo.query).not.toHaveBeenCalled();
     });
 
     it('leaves the queue count alone when re-reviewing a closed report', async () => {
@@ -124,7 +136,7 @@ describe('ReportsService', () => {
       mockReportCountsRepo.findOne.mockResolvedValue({ pending_count: 3 });
 
       await service.reviewReport('r1', { status: 'dismissed', action_taken: 'none' }, 'admin');
-      expect(mockReportCountsRepo.save).not.toHaveBeenCalled();
+      expect(mockReportCountsRepo.query).not.toHaveBeenCalled();
     });
 
     it('closing a report that was only "reviewed" still leaves the queue', async () => {
@@ -133,7 +145,7 @@ describe('ReportsService', () => {
       mockReportCountsRepo.findOne.mockResolvedValue({ pending_count: 2 });
 
       await service.reviewReport('r1', { status: 'dismissed', action_taken: 'none' }, 'admin');
-      expect(mockReportCountsRepo.save).toHaveBeenCalledWith(expect.objectContaining({ pending_count: 1 }));
+      expect(mockReportCountsRepo.query).toHaveBeenCalledWith(expect.stringMatching(/pending_count - 1/), ['listing', 'l1']);
     });
 
     it('rejects unknown statuses and actions', async () => {
