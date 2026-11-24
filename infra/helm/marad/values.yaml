@@ -1,0 +1,109 @@
+# Production-shaped defaults. Data stores (PostgreSQL, Redis, Elasticsearch) are expected to be
+# managed services (RDS, ElastiCache, OpenSearch, ...); point the connection settings at them.
+
+image:
+  # Images are published as <registry>/<prefix>-<service>:<tag>, e.g. ghcr.io/acme/marad-auth-service:1.0.0
+  registry: ghcr.io/your-org
+  prefix: marad
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+# Secrets are never stored in values: create them out of band (sealed-secrets, External
+# Secrets Operator, `kubectl create secret`). Keys are listed in docs/DEPLOYMENT.md.
+secrets:
+  # Shared by every service: DATABASE_URL, INTERNAL_SECRET, JWT_PUBLIC_JWKS, REDIS_HOST, ...
+  app: marad-app
+  # auth-service only: JWT_PRIVATE_KEY_B64, JWT_REFRESH_SECRET
+  authSigning: marad-auth-signing
+
+config:
+  NODE_ENV: production
+  ENV: production
+  LOG_LEVEL: info
+  REDIS_PORT: "6379"
+  CORS_ORIGINS: https://www.example.com
+  PUBLIC_API_URL: https://api.example.com/api/v1
+  # Web app and API on sibling subdomains share the session cookie through the parent domain.
+  COOKIE_DOMAIN: .example.com
+  TRUST_PROXY_HOPS: "1"
+  ELASTICSEARCH_NODE: https://search.internal.example.com:9200
+  # OpenTelemetry collector (empty: tracing off).
+  OTEL_EXPORTER_OTLP_ENDPOINT: ""
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations: {}
+  apiHost: api.example.com
+  webHost: www.example.com
+  tls:
+    - secretName: marad-tls
+      hosts: [api.example.com, www.example.com]
+
+# Run db/migrations as a pre-install/pre-upgrade hook (advisory-locked, safe to repeat).
+migrations:
+  enabled: true
+
+networkPolicy:
+  enabled: true
+
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile: { type: RuntimeDefault }
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities: { drop: [ALL] }
+
+defaults:
+  replicas: 2
+  resources:
+    requests: { cpu: 100m, memory: 192Mi }
+    limits: { memory: 512Mi }
+  autoscaling: { enabled: false, minReplicas: 2, maxReplicas: 6, targetCPUUtilizationPercentage: 70 }
+
+# name -> settings. `public` services are reachable from the ingress controller; the others
+# only from inside the release (NetworkPolicy). `writableDirs` become emptyDir volumes
+# (local media is a development fallback: use S3 in production).
+services:
+  api-gateway:
+    port: 3000
+    public: true
+    autoscaling: { enabled: true }
+    env:
+      AUTH_SERVICE_URL: http://{{ .Release.Name }}-auth-service:3001
+      LISTINGS_SERVICE_URL: http://{{ .Release.Name }}-listings-service:3002
+      SEARCH_SERVICE_URL: http://{{ .Release.Name }}-search-service:3003
+      MESSAGING_SERVICE_URL: http://{{ .Release.Name }}-messaging-service:3004
+      TRANSACTIONS_SERVICE_URL: http://{{ .Release.Name }}-transactions-service:3005
+      IDENTITY_SERVICE_URL: http://{{ .Release.Name }}-identity-service:3006
+      USERS_SERVICE_URL: http://{{ .Release.Name }}-users-service:3007
+      MODERATION_SERVICE_URL: http://{{ .Release.Name }}-moderation-service:3008
+      FRAUD_SERVICE_URL: http://{{ .Release.Name }}-fraud-service:8001
+      PERSONALIZATION_SERVICE_URL: http://{{ .Release.Name }}-personalization-service:8002
+  auth-service: { port: 3001, authSigning: true }
+  listings-service:
+    port: 3002
+    writableDirs: [/app/services/listings-service/tmp]
+    env: { STORAGE_PROVIDER: s3 }
+  search-service: { port: 3003 }
+  messaging-service:
+    # Socket.IO is served directly (sticky sessions not needed: Redis adapter).
+    port: 3004
+    public: true
+    writableDirs: [/app/services/messaging-service/uploads]
+  transactions-service: { port: 3005 }
+  identity-service: { port: 3006 }
+  users-service:
+    port: 3007
+    writableDirs: [/app/tmp]
+    env: { STORAGE_PROVIDER: s3 }
+  moderation-service: { port: 3008 }
+  fraud-service: { port: 8001 }
+  personalization-service: { port: 8002 }
+  web:
+    port: 3100
+    public: true
+    # NEXT_PUBLIC_* are baked into the web image at build time (docker build --build-arg).
+    noAppSecrets: true

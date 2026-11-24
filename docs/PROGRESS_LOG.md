@@ -111,3 +111,8 @@
 - البوابة: تمرر `cookie`/`Set-Cookie` **لـ auth-service فقط**.
 - الويب: رمز الوصول في ذاكرة الوحدة فقط، refresh أحادي (single-flight)، `SessionRestore` يستعيد الجلسة من الكوكي، middleware يعتمد على `marad_session`، حُذف `js-cookie`.
 - **بوابة الجودة:** auth 31 (+4)، gateway 49، web 61 + lint 0 أخطاء؛ e2e **52/52** (مسار الجوال بالـ body لم يتغير)؛ اختبار Playwright حقيقي: دخول ← الكوكي `HttpOnly/Secure/Strict` ← `localStorage` فارغ ← `document.cookie` لا يحوي إلا العلم ← إعادة تحميل صفحة محمية `/my-listings` تبقى مسجّلاً.
+
+### T10.1 — Helm chart ✅
+- `infra/helm/marad`: Deployment/Service/PDB لـ 12 مكوّناً، HPA، Ingress (API + socket + web)، NetworkPolicy (رفض افتراضي)، Job ترحيلات كـ hook، securityContext صارم، أسرار من Kubernetes Secrets خارجية (`marad-app`، و`marad-auth-signing` لـ auth وحده).
+- `helm lint --strict` ✅، `helm template` → 44 كائناً ✅. Trivy (config) على المخرجات: لا HIGH/CRITICAL؛ المتبقي MEDIUM خاص بالبيئة (قائمة السجلات المسموحة) + تنبيه heuristic على اسم `COOKIE_DOMAIN`.
+- kubeconform غير متاح (ghcr.io محجوب هنا) — Trivy بديلاً. `helm lint` أُضيف إلى CI. `docs/DEPLOYMENT.md`: البناء، الأسرار، التثبيت، تدوير المفاتيح. حُذف `infra/k8s/.gitkeep` الفارغ.

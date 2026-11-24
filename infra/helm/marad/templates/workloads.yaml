@@ -1,0 +1,113 @@
+{{- range $name, $svc := .Values.services }}
+{{- $ctx := dict "root" $ "name" $name }}
+{{- $autoscaling := merge (default dict $svc.autoscaling) $.Values.defaults.autoscaling }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "marad.name" $ctx }}
+  labels: {{- include "marad.labels" $ctx | nindent 4 }}
+spec:
+  {{- if not $autoscaling.enabled }}
+  replicas: {{ default $.Values.defaults.replicas $svc.replicas }}
+  {{- end }}
+  selector:
+    matchLabels: {{- include "marad.selector" $ctx | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "marad.labels" $ctx | nindent 8 }}
+      annotations:
+        checksum/config: {{ toJson $.Values.config | sha256sum }}
+    spec:
+      {{- with $.Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      automountServiceAccountToken: false
+      securityContext: {{- toYaml $.Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ $name }}
+          image: {{ include "marad.image" $ctx }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ $svc.port }}
+          securityContext: {{- toYaml $.Values.containerSecurityContext | nindent 12 }}
+          {{- if not $svc.noAppSecrets }}
+          envFrom:
+            - configMapRef:
+                name: {{ $.Release.Name }}-config
+            - secretRef:
+                name: {{ $.Values.secrets.app }}
+            {{- if $svc.authSigning }}
+            - secretRef:
+                name: {{ $.Values.secrets.authSigning }}
+            {{- end }}
+          {{- end }}
+          env:
+            - name: PORT
+              value: {{ $svc.port | quote }}
+            - name: OTEL_SERVICE_NAME
+              value: {{ $name }}
+            {{- range $k, $v := $svc.env }}
+            - name: {{ $k }}
+              value: {{ tpl (toString $v) $ | quote }}
+            {{- end }}
+          readinessProbe:
+            httpGet: { path: {{ ternary "/" "/health" (eq $name "web") }}, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: {{ ternary "/" "/health" (eq $name "web") }}, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources: {{- toYaml (default $.Values.defaults.resources $svc.resources) | nindent 12 }}
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            {{- range $i, $dir := $svc.writableDirs }}
+            - { name: data-{{ $i }}, mountPath: {{ $dir }} }
+            {{- end }}
+      volumes:
+        - { name: tmp, emptyDir: {} }
+        {{- range $i, $dir := $svc.writableDirs }}
+        - { name: data-{{ $i }}, emptyDir: {} }
+        {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "marad.name" $ctx }}
+  labels: {{- include "marad.labels" $ctx | nindent 4 }}
+spec:
+  selector: {{- include "marad.selector" $ctx | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ $svc.port }}
+      targetPort: http
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "marad.name" $ctx }}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels: {{- include "marad.selector" $ctx | nindent 6 }}
+{{- if $autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "marad.name" $ctx }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "marad.name" $ctx }}
+  minReplicas: {{ $autoscaling.minReplicas }}
+  maxReplicas: {{ $autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: {{ $autoscaling.targetCPUUtilizationPercentage }} }
+{{- end }}
+{{- end }}

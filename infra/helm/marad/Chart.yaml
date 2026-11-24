@@ -1,0 +1,7 @@
+apiVersion: v2
+name: marad
+description: Ma'rad Al-Ashya' C2C marketplace — API gateway, 10 microservices and the web app
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords: [marketplace, microservices, nestjs, fastapi, nextjs]

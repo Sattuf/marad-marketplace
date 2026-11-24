@@ -29,6 +29,10 @@ jobs:
         run: node scripts/check-contracts.mjs
       - name: Shared security/database helpers are identical in every service
         run: node scripts/check-shared-copies.mjs
+      - name: Helm chart lints and renders
+        run: |
+          docker run --rm -v "$PWD/infra/helm:/charts" alpine/helm:3.16.3 lint /charts/marad --strict
+          docker run --rm -v "$PWD/infra/helm:/charts" alpine/helm:3.16.3 template demo /charts/marad > /dev/null
       - name: Fail on known leaked default secrets
         run: |
           pattern="your-secret-key|access_secret_key_12345|refresh_secret_key_67890|supersecretkey|marad-internal-secret-for-webhooks|secret123|dev-jwt-secret-change-in-production"
