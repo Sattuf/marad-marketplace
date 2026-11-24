@@ -56,3 +56,10 @@
 - `RedisIoAdapter` (`@socket.io/redis-adapter` + ioredis pub/sub) مفعّل افتراضياً (`SOCKET_REDIS_ADAPTER=false` للتعطيل).
 - اختبار تكامل: خادما Socket.IO على Redis حقيقي؛ حدث يُبث من A يصل لعميل متصل بـ B. (المحاولة الأولى علِقت لأن IoAdapter بدون تطبيق Nest يُنشئ خادم HTTP خاصاً به — صُحّح.)
 - **بوابة الجودة:** 10 اختبارات وحدة + اختبار التكامل؛ الحاوية healthy مع سجل "rooms are shared through Redis"؛ e2e **52/52**.
+
+### T3.2 + T3.3 — فهرس trigram + عدّادات بلاغات ذرية (P9، P11) ✅
+- `db/migrations/0006_listings_title_trgm.sql`: `pg_trgm` + فهرس GIN على `listings.title`؛ `EXPLAIN` يُظهر `Bitmap Index Scan on idx_listings_title_trgm` لـ `ILIKE '%جوال%'`.
+- moderation: زيادة العداد صارت upsert ذرياً واحداً (`INSERT … ON CONFLICT DO UPDATE … RETURNING`)، والإنقاص `UPDATE … WHERE pending_count > 0`. السابق (قراءة-تعديل-كتابة) كان يفقد زيادات تحت التزامن، فقد لا يبلغ عتبة المراجعة الآلية.
+- تحقق على Postgres حقيقي: 50 بلاغاً متزامناً → `pending_count = 50`.
+- **بوابة الجودة:** moderation 11 اختباراً (1 جديد)؛ اختبارات مشغّل الترحيلات 4/4؛ بلاغ عبر البوابة 201؛ e2e **52/52**.
+- **المرحلة 3 مكتملة.**
