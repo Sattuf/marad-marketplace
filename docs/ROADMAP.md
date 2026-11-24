@@ -17,7 +17,7 @@
 | # | المهمة | معيار القبول | الحالة |
 |---|---|---|---|
 | T1.1 | تقوية compose والأسرار (S5، S7، S8، S13) | لا كلمات مرور حرفية في compose (كلها من `.env`)، لا `docker.sock`، لا وسوم `latest`، `.gitleaks.toml` وgitleaks نظيف، `docker compose config` صالح | ✅ |
-| T1.2 | ثغرات اعتماديات Node (S1، S2) | `npm audit --omit=dev`: 0 حرجة و0 عالية في كل lockfile (أو استثناء موثق بلا إصلاح)، typecheck + اختبارات خضراء | ⏳ |
+| T1.2 | ثغرات اعتماديات Node (S1، S2) | `npm audit --omit=dev`: 0 حرجة و0 عالية في كل lockfile (أو استثناء موثق بلا إصلاح)، typecheck + اختبارات خضراء | ✅ |
 | T1.3 | ثغرات Python (S3، S4، S7) | `python-jose` → `PyJWT`، fastapi/starlette محدّثة، كل الإصدارات مثبتة، `pip-audit` نظيف، pytest أخضر | ⏳ |
 | T1.4 | `ValidationPipe` عام في identity/messaging/search (S9) | `whitelist` + `transform` مفعّلة، اختبار يثبت رفض المدخلات غير الصالحة | ⏳ |
 
