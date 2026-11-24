@@ -51,9 +51,9 @@
 ## 6. المراقبة
 | # | المهمة | معيار القبول | الحالة |
 |---|---|---|---|
-| T6.1 | Logging منظم JSON | Node (pino) وPython بسجلات JSON تحمل `requestId` | ⏳ |
-| T6.2 | OpenTelemetry + Jaeger | تتبّع طلب واحد عبر gateway → listings → search يظهر في Jaeger | ⏳ |
-| T6.3 | Prometheus + Grafana لكل الخدمات | كل الخدمات targets بحالة UP؛ لوحة Grafana للخدمات | ⏳ |
+| T6.1 | Logging منظم JSON | Node (pino) وPython بسجلات JSON تحمل `requestId` | ✅ |
+| T6.2 | OpenTelemetry + Jaeger | تتبّع طلب واحد عبر gateway → listings → search يظهر في Jaeger | ✅ |
+| T6.3 | Prometheus + Grafana لكل الخدمات | كل الخدمات targets بحالة UP؛ لوحة Grafana للخدمات | ✅ |
 
 ## 7. CI/CD
 | # | المهمة | معيار القبول | الحالة |

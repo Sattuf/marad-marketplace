@@ -11,9 +11,12 @@ from app.core.errors import install_error_handlers
 from app.core.jwt_keys import public_keys
 import os
 import sentry_sdk
+from app.core.observability import setup_logging, setup_tracing
 from prometheus_fastapi_instrumentator import Instrumentator
 
-sentry_sdk.init(dsn=os.getenv("SENTRY_DSN"), traces_sample_rate=0.1)
+setup_logging()
+if os.getenv("SENTRY_DSN"):
+    sentry_sdk.init(dsn=os.getenv("SENTRY_DSN"), traces_sample_rate=0.1)
 
 logger = logging.getLogger("personalization")
 MAINTENANCE_INTERVAL_SECONDS = 24 * 3600
@@ -53,6 +56,7 @@ app = FastAPI(
 )
 
 install_error_handlers(app)
+setup_tracing(app, "personalization-service")
 Instrumentator().instrument(app).expose(app)
 
 app.include_router(events.router)

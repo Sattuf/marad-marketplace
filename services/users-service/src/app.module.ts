@@ -1,3 +1,4 @@
+import { LoggingModule } from './observability/logging.module';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { postgresConnectionOptions } from './common/database';
@@ -12,6 +13,7 @@ import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 
 @Module({
   imports: [
+    LoggingModule,
     PrometheusModule.register(),
     ConfigModule.forRoot({
       isGlobal: true,

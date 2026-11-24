@@ -10,7 +10,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const services = join(fileURLToPath(import.meta.url), '..', '..', 'services');
-const SHARED = ['src/common/security.ts', 'src/common/database.ts', 'src/common/stats.ts', 'src/filters/sentry-exception.filter.ts'];
+const SHARED = ['src/observability/tracing.ts', 'src/observability/logging.module.ts', 'src/common/security.ts', 'src/common/database.ts', 'src/common/stats.ts', 'src/filters/sentry-exception.filter.ts'];
 let failed = false;
 
 for (const file of SHARED) {
@@ -32,6 +32,7 @@ for (const file of SHARED) {
   for (const [a, b] of [
     ['fraud-service/errors.py', 'personalization-service/app/core/errors.py'],
     ['fraud-service/jwt_keys.py', 'personalization-service/app/core/jwt_keys.py'],
+    ['fraud-service/observability.py', 'personalization-service/app/core/observability.py'],
   ]) {
     const pyHashes = new Set([a, b].map((f) => createHash('sha256').update(readFileSync(join(services, f))).digest('hex')));
     if (pyHashes.size > 1) {

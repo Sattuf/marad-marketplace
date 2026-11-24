@@ -1,4 +1,8 @@
+// Must run before anything it instruments.
+import './observability/tracing';
 import { NestFactory } from '@nestjs/core';
+import { Logger as PinoLogger } from 'nestjs-pino';
+import { tracingEnabled } from './observability/tracing';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -10,12 +14,13 @@ import { assertRequiredSecrets, loadPublicKeys, corsOrigins, isProduction } from
 async function bootstrap() {
   assertRequiredSecrets('INTERNAL_SECRET');
   loadPublicKeys(); // fails at boot on a missing or malformed JWT_PUBLIC_JWKS
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  app.useLogger(app.get(PinoLogger));
   
-  Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    tracesSampleRate: 0.1,
-  });
+  // Error reporting only when configured; OpenTelemetry owns tracing (tracing.ts).
+  if (process.env.SENTRY_DSN) {
+    Sentry.init({ dsn: process.env.SENTRY_DSN, tracesSampleRate: 0.1, skipOpenTelemetrySetup: tracingEnabled });
+  }
   app.useGlobalFilters(new SentryExceptionFilter());
   // Strip unknown properties and enforce DTO constraints (class-validator) on every route.
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));

@@ -120,3 +120,18 @@ NestJS مسجلة كعمل مستقبلي. أُعيد توليد `package-lock.j
 **أقوى اعتراضين:** (1) "اختراق خدمة ما زال يعطي صلاحية مدير عبر قاعدة البيانات المشتركة و`INTERNAL_SECRET`" — صحيح؛
 النطاق صُرّح به بأمانة وسُجّل S16 كعمل مستقبلي (أدوار Postgres لكل خدمة). (2) "بلا JWKS ديناميكي يصعب التدوير" —
 إجراء التدوير: أضف المفتاح الجديد للمجموعة ← أعد نشر المُتحقِّقين ← بدّل الموقِّع ← احذف القديم بعد 15 دقيقة (عمر الرمز).
+
+---
+
+## ADR-008 — المراقبة: pino + OpenTelemetry + Jaeger + Prometheus/Grafana
+| الخيار | توافق | عرض | مجاني | بساطة | نشر | المجموع |
+|---|---|---|---|---|---|---|
+| A. `nestjs-pino` (JSON) + OpenTelemetry SDK بالـ auto-instrumentation → Jaeger (OTLP)، مع Prometheus/Grafana الموجودين | 5 | 5 | 5 | 4 | 5 | **24** |
+| B. Logger JSON مخصص + spans يدوية | 4 | 2 | 5 | 3 | 3 | 17 |
+| C. Grafana Loki + Tempo + Alloy | 3 | 5 | 4 | 2 | 5 | 19 |
+
+**القرار:** A. OTLP معيار محايد: الانتقال لاحقاً إلى Tempo أو مزود سحابي = تغيير متغير `OTEL_EXPORTER_OTLP_ENDPOINT` فقط.
+**المراجعة الناقدة:** (1) "Sentry v8 يُنشئ مزوّد OpenTelemetry خاصاً به فيتعارضان" — يُستدعى `Sentry.init` الآن فقط عند وجود
+`SENTRY_DSN` ومع `skipOpenTelemetrySetup` عند تفعيل التتبّع. (2) "auto-instrumentation يضخم الصور ويضيف ضجيجاً" — عُطّلت
+fs/dns/net وفحوص health/metrics؛ والتتبّع معطّل كلياً إن غاب المتغير.
+nestjs-pino 4.6 لأن الإصدار 5 يتطلب NestJS 11.

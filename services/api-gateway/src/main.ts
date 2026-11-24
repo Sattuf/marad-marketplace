@@ -1,4 +1,8 @@
+// Must run before anything it instruments.
+import './observability/tracing';
 import { NestFactory } from '@nestjs/core';
+import { Logger as PinoLogger } from 'nestjs-pino';
+import { tracingEnabled } from './observability/tracing';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from '@nestjs/common';
@@ -21,12 +25,13 @@ function corsOrigins(): string[] {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bodyParser: false });
+  const app = await NestFactory.create(AppModule, { bodyParser: false, bufferLogs: true });
+  app.useLogger(app.get(PinoLogger));
   
-  Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    tracesSampleRate: 0.1,
-  });
+  // Error reporting only when configured; OpenTelemetry owns tracing (tracing.ts).
+  if (process.env.SENTRY_DSN) {
+    Sentry.init({ dsn: process.env.SENTRY_DSN, tracesSampleRate: 0.1, skipOpenTelemetrySetup: tracingEnabled });
+  }
   app.useGlobalFilters(new SentryExceptionFilter());
 
   const logger = new Logger('APIGateway');

@@ -1,3 +1,4 @@
+import { LoggingModule } from './observability/logging.module';
 import { AdminStatsModule } from './admin-stats/admin-stats.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
@@ -13,6 +14,7 @@ import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 
 @Module({
   imports: [
+    LoggingModule,
     PrometheusModule.register(),
     ConfigModule.forRoot({
       isGlobal: true,
