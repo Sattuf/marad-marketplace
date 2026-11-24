@@ -4,6 +4,7 @@ import database
 
 from routers import device, transaction, risk, admin
 from security import require_secret
+from errors import install_error_handlers
 
 import os
 import sentry_sdk
@@ -21,6 +22,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Fraud Service", version="1.0.0", lifespan=lifespan)
 
+install_error_handlers(app)
 Instrumentator().instrument(app).expose(app)
 
 app.include_router(device.router)

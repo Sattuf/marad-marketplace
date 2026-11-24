@@ -40,7 +40,7 @@
 |---|---|---|---|
 | T4.1 | OpenAPI موحد في البوابة | `/api/docs` في البوابة يعرض مواصفات كل الخدمات (بما فيها FastAPI) | ⏳ |
 | T4.2 | مصادقة مركزية غير متماثلة (S11) | auth يوقّع RS256 وينشر JWKS؛ باقي الخدمات تتحقق بالمفتاح العام فقط؛ اختبارات سلبية | ⏳ |
-| T4.3 | صيغة أخطاء موحدة + Request ID | كل الخدمات تعيد `{statusCode,error,message,requestId,timestamp,path}`؛ `X-Request-ID` يمر عبر البوابة | ⏳ |
+| T4.3 | صيغة أخطاء موحدة + Request ID | كل الخدمات تعيد `{statusCode,error,message,requestId,timestamp,path}`؛ `X-Request-ID` يمر عبر البوابة | ✅ |
 
 ## 5. الاختبارات
 | # | المهمة | معيار القبول | الحالة |

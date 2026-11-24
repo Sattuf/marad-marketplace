@@ -7,6 +7,7 @@ from app.core.db import db
 from app.services.event_service import event_service
 from app.services.recommendation_service import recommendation_service
 from app.routers import events, recommendations
+from app.core.errors import install_error_handlers
 import os
 import sentry_sdk
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -49,6 +50,7 @@ app = FastAPI(
     version="0.1.0",
 )
 
+install_error_handlers(app)
 Instrumentator().instrument(app).expose(app)
 
 app.include_router(events.router)
