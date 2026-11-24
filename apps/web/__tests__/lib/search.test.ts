@@ -1,3 +1,4 @@
+import type { Listing } from '@/types/listing';
 import { searchApi } from '@/lib/api/search';
 import { api } from '@/lib/api/auth';
 import { listingsApi } from '@/lib/api/listings';
@@ -5,8 +6,8 @@ import { listingsApi } from '@/lib/api/listings';
 jest.mock('../../src/lib/api/auth', () => ({ api: { get: jest.fn(), post: jest.fn() } }));
 jest.mock('../../src/lib/api/listings', () => ({ listingsApi: { getListings: jest.fn() } }));
 
-const listing = (id: string, status = 'active') => ({ id, status, title: id, images: [] }) as any;
-const dbPage = (data: any[]) => ({ data, meta: { page: 1, limit: 20, total: data.length, lastPage: 1 } });
+const listing = (id: string, status = 'active') => ({ id, status, title: id, images: [] }) as unknown as Listing;
+const dbPage = (data: Listing[]) => ({ data, meta: { page: 1, limit: 20, total: data.length, lastPage: 1 } });
 
 describe('searchApi.page', () => {
   beforeEach(() => jest.clearAllMocks());

@@ -83,3 +83,10 @@
 - Swagger UI في `/api/docs` بقائمة منسدلة لـ 11 مواصفة (البوابة + 10 خدمات)؛ "Try it out" يمر عبر البوابة مع Bearer.
 - users-service لم يكن فيه Swagger أصلاً → أُضيف (وأصبح منفذه الافتراضي 3007 بدل 3000، يغلق S15).
 - **بوابة الجودة:** gateway 49 (+3)، users 8؛ كل المواصفات العشر تُجلب؛ تحقق: مسارات transactions/moderation تطابق التوجيه الفعلي (GET `/api/v1/transactions` → 200).
+
+### T5.1 — Lint موحد ✅
+- `eslint.config.mjs` في الجذر (ESLint 9 + typescript-eslint) للخدمات السبع في مساحة العمل؛ `--max-warnings=0`. users/moderation على `.eslintrc.js` الخاص بهما (`ESLINT_USE_FLAT_CONFIG=false`)، وأُزيلت قاعدة Prettier منها لأنها تعيد تنسيق الملفات المشتركة فتكسر ضمان النسخ المتطابقة.
+- إصلاحات حقيقية: استيرادات غير مستخدمة (`getSignedUrl`، `firebase-admin`، `IsNull`، `Headers`، `UpdateDateColumn`)، هروب زائد في regex البوابة، `prefer-const`.
+- الويب: 20 خطأ → 0. استُبدل `any` بأنواع حقيقية (`types/fraud.ts`)، وكشف ذلك عيبين فعليين في لوحة الاحتيال: عوامل الخطورة قد تكون نصوصاً (كانت تُعرض ككائن)، وتاريخ الإشارة قد يغيب (`Invalid Date`). `react-hooks/set-state-in-effect` (قاعدة React Compiler الجديدة) → تحذير موثق كدَين تقني، مع 17 تحذير `<img>`.
+- CI: خطوة lint لكل خدمة Node وللويب.
+- **بوابة الجودة:** lint نظيف في 9 خدمات؛ الويب tsc + 61 اختباراً + build؛ خدمات Node كلها خضراء.

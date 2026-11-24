@@ -6,13 +6,14 @@ import { fraudApi } from '@/lib/api/fraud';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowRight, ShieldAlert, AlertTriangle, Lock, Flag } from 'lucide-react';
 import Link from 'next/link';
+import type { RiskData, RiskFactor } from '@/types/fraud';
 
 export default function FraudUserDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const userId = params.userId as string;
 
-  const [riskData, setRiskData] = useState<any>(null);
+  const [riskData, setRiskData] = useState<RiskData | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [reason, setReason] = useState('');
@@ -115,11 +116,13 @@ export default function FraudUserDetailsPage() {
             <p className="text-gray-500 text-center py-8">لا توجد عوامل خطورة مسجلة</p>
           ) : (
             <ul className="space-y-3">
-              {factors.map((factor: any, idx: number) => (
+              {factors.map((raw: RiskFactor | string, idx: number) => {
+                const factor: RiskFactor = typeof raw === 'string' ? { description: raw } : raw;
+                return (
                 <li key={idx} className="flex items-start gap-3 bg-gray-900 p-3 rounded-lg border border-gray-800">
                   <AlertTriangle className="text-orange-500 mt-0.5" size={18} />
                   <div>
-                    <p className="text-gray-200 font-medium">{factor.description || factor.type || factor}</p>
+                    <p className="text-gray-200 font-medium">{factor.description || factor.type || '—'}</p>
                     {factor.timestamp && (
                       <p className="text-xs text-gray-500 mt-1">
                         {new Date(factor.timestamp).toLocaleString('ar-SA')}
@@ -127,7 +130,8 @@ export default function FraudUserDetailsPage() {
                     )}
                   </div>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
         </div>

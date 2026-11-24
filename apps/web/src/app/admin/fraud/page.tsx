@@ -3,10 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import { fraudApi } from '@/lib/api/fraud';
 import Link from 'next/link';
+import type { FraudSignal, FraudStats } from '@/types/fraud';
 
 export default function FraudDashboardPage() {
-  const [stats, setStats] = useState<any>(null);
-  const [signals, setSignals] = useState<any[]>([]);
+  const [stats, setStats] = useState<FraudStats | null>(null);
+  const [signals, setSignals] = useState<FraudSignal[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -83,17 +84,17 @@ export default function FraudDashboardPage() {
                   </td>
                 </tr>
               ) : (
-                signals.map((signal: any, idx) => (
+                signals.map((signal, idx) => (
                   <tr key={idx} className="hover:bg-gray-900/50 transition-colors">
                     <td className="p-4 text-sm text-gray-300">{signal.user_id}</td>
                     <td className="p-4 text-sm text-gray-300">{signal.signal_type || signal.type}</td>
                     <td className="p-4">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getSeverityColor(signal.severity)}`}>
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getSeverityColor(signal.severity ?? '')}`}>
                         {signal.severity || 'غير محدد'}
                       </span>
                     </td>
                     <td className="p-4 text-sm text-gray-400">
-                      {new Date(signal.created_at || signal.timestamp).toLocaleDateString('ar-SA')}
+                      {signal.created_at || signal.timestamp ? new Date((signal.created_at || signal.timestamp)!).toLocaleDateString('ar-SA') : '—'}
                     </td>
                     <td className="p-4">
                       <Link 

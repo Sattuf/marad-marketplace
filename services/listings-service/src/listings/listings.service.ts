@@ -79,7 +79,7 @@ export class ListingsService {
     try {
       const searchServiceUrl = process.env.SEARCH_SERVICE_URL || 'http://localhost:3003';
       
-      let enrichedListing = { ...listing };
+      const enrichedListing = { ...listing };
       
       if (action !== 'delete') {
         let sellerRating = 0;

@@ -33,7 +33,7 @@ export default function AdminReportsPage() {
   const fetchReports = () => {
     setLoading(true);
     adminApi.getReports(statusFilter || undefined, typeFilter || undefined, page, 15)
-      .then((res: any) => {
+      .then((res) => {
         setReports(res.data);
         setTotalPages(res.lastPage);
       })
