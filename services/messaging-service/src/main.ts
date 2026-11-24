@@ -8,6 +8,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as Sentry from '@sentry/node';
 import { SentryExceptionFilter } from './filters/sentry-exception.filter';
 import { assertRequiredSecrets, corsOrigins, isProduction } from './common/security';
+import { RedisIoAdapter } from './redis/redis-io.adapter';
 
 async function bootstrap() {
   assertRequiredSecrets('JWT_ACCESS_SECRET', 'INTERNAL_SECRET');
@@ -17,6 +18,12 @@ async function bootstrap() {
     dsn: process.env.SENTRY_DSN,
     tracesSampleRate: 0.1,
   });
+  // Share Socket.IO rooms across replicas (set SOCKET_REDIS_ADAPTER=false to run standalone).
+  if (process.env.SOCKET_REDIS_ADAPTER !== 'false') {
+    const ioAdapter = new RedisIoAdapter(app);
+    await ioAdapter.connectToRedis();
+    app.useWebSocketAdapter(ioAdapter);
+  }
   app.useGlobalFilters(new SentryExceptionFilter());
   // Strip unknown properties and enforce DTO constraints (class-validator) on every route.
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
