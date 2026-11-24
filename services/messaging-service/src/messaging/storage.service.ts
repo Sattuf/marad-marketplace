@@ -4,7 +4,6 @@ import * as path from 'path';
 // sharp's typings declare a default export, but require('sharp') returns the function
 // itself: a default import compiles to sharp_1.default, which is undefined at runtime
 // (these services do not use esModuleInterop). Types from the typings, value from require.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const sharp: typeof import('sharp').default = require('sharp');
 
 /**

@@ -45,7 +45,7 @@ describe('design system components', () => {
   });
 
   it('ThemeToggle switches <html data-theme> and remembers the choice', () => {
-    window.matchMedia = jest.fn().mockReturnValue({ matches: false }) as any;
+    window.matchMedia = jest.fn().mockReturnValue({ matches: false }) as unknown as typeof window.matchMedia;
     render(<ThemeToggle />);
     fireEvent.click(screen.getByRole('button', { name: 'تفعيل الوضع الداكن' }));
     expect(document.documentElement.dataset.theme).toBe('dark');

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Request, Headers, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PromotionsService } from './promotions.service';
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';

@@ -10,7 +10,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "lint": "eslint \"{src,test}/**/*.ts\"",
+    "lint": "eslint \"{src,test}/**/*.ts\" --max-warnings=0",
     "test:int": "jest --config jest.int.config.js --runInBand"
   },
   "dependencies": {

@@ -168,7 +168,7 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ id
               <label className="block text-gray-400 text-sm mb-2">الحالة</label>
               <select 
                 value={status}
-                onChange={(e) => setStatus(e.target.value as any)}
+                onChange={(e) => setStatus(e.target.value as Report['status'])}
                 className="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-4 py-2.5 outline-none focus:border-primary transition-colors"
               >
                 <option value="pending">معلق</option>
@@ -182,7 +182,7 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ id
               <label className="block text-gray-400 text-sm mb-2">الإجراء المتخذ</label>
               <select 
                 value={actionTaken}
-                onChange={(e) => setActionTaken(e.target.value as any)}
+                onChange={(e) => setActionTaken(e.target.value as NonNullable<Report['actionTaken']>)}
                 className="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-4 py-2.5 outline-none focus:border-primary transition-colors"
               >
                 <option value="none">لا يوجد إجراء</option>

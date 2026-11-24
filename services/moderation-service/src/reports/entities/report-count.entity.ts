@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryColumn } from 'typeorm';
 
 @Entity('report_counts')
 export class ReportCount {

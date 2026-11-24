@@ -65,6 +65,9 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit -p tsconfig.build.json
         working-directory: services/${{ matrix.service }}
+      - name: Lint (no warnings allowed)
+        run: npm run lint
+        working-directory: services/${{ matrix.service }}
       - name: Unit tests
         run: npx jest --ci
         working-directory: services/${{ matrix.service }}
@@ -87,6 +90,9 @@ jobs:
         working-directory: services/${{ matrix.service }}
       - name: Typecheck
         run: npx tsc --noEmit -p tsconfig.build.json
+        working-directory: services/${{ matrix.service }}
+      - name: Lint (no warnings allowed)
+        run: npm run lint
         working-directory: services/${{ matrix.service }}
       - name: Unit tests
         run: npx jest --ci
@@ -197,6 +203,9 @@ jobs:
         run: node packages/design-tokens/build.mjs --check
       - name: Typecheck
         run: npx tsc --noEmit
+        working-directory: apps/web
+      - name: Lint (errors fail; warnings are tracked tech debt)
+        run: npm run lint
         working-directory: apps/web
       - name: Unit tests
         run: npx jest --ci

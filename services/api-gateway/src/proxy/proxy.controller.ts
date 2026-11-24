@@ -53,7 +53,7 @@ export function sanitizePath(rawPath: string): string[] | null {
     } catch {
       return null;
     }
-    if (decoded === '.' || decoded === '..' || /[\/\\?#]/.test(decoded)) {
+    if (decoded === '.' || decoded === '..' || /[/\\?#]/.test(decoded)) {
       return null;
     }
     decodedSegments.push(decoded);

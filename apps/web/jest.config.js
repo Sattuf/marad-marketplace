@@ -1,3 +1,5 @@
+// CommonJS by design: next/jest is loaded by Jest's CJS config loader.
+/* eslint-disable @typescript-eslint/no-require-imports */
 const nextJest = require('next/jest.js');
  
 const createJestConfig = nextJest({
