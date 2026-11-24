@@ -18,3 +18,11 @@
 - `.gitleaks.toml` + `.gitleaksignore`: gitleaks نظيف على الشجرة والتاريخ.
 - **خطأ اكتُشف وأُصلح:** search-service يُنشئ فهرس ES مرة واحدة دون إعادة محاولة؛ إن لم يكن ES جاهزاً يُنشأ الفهرس تلقائياً بـ mapping ديناميكي فيتعطل البحث المرتّب نهائياً (`script_exception`). الحل: إعادة محاولة مع backoff + اختباران + `action.auto_create_index=-marad_listings` في ES. وصار فحص البحث إلزامياً في smoke (كان يُتخطى بصمت).
 - **بوابة الجودة:** 12 صورة تُبنى؛ 17 حاوية `healthy`؛ Prometheus: 12/12 targets UP؛ `e2e-smoke`: **52/52**؛ search-service: 22 اختباراً.
+
+### T1.2 — ثغرات اعتماديات Node ✅
+- `npm audit fix --legacy-peer-deps` ثم: next 16.2.9 → 16.4.6 (حرجة: تجاوز middleware)، bcrypt 5 → 6 (tar حرجة عبر node-pre-gyp)، sharp ^0.35.5، و`overrides` في الجذر وفي users/moderation (multer 2.5، body-parser 1.20.9، lodash 4.18.1، js-yaml 4.3.2، tar، postcss، grpc-js).
+- محاولة 1: حذف مدخلات من lockfile → شجرة ناقصة (`Cannot find module 'lodash'`). محاولة 2: إعادة توليد lockfile من الصفر → نجحت.
+- `services/listings-service/package-lock.json` (غير مستخدم داخل مساحة العمل) → `archive/lockfiles/`.
+- **عائق بيئي:** امتلأ قرص الحصة → ES فرض `read_only_allow_delete`. أُضيف `cluster.routing.allocation.disk.threshold_enabled=false` لعنقود التطوير، ونُظّف build cache (25GB).
+- **بوابة الجودة:** prod audit 0/0 في الجذر وusers وmoderation وdb؛ typecheck نظيف؛ 190 Node + 61 ويب + 2 جديدان؛ `next build` ناجح؛ 12 صورة؛ e2e **52/52**.
+- ملاحظة: `eslint` الويب يُظهر 20 خطأ سابقاً (لا يشغّله CI) → T5.1.

@@ -111,6 +111,9 @@ services:
       # search-service creates marad_listings with an explicit mapping; never let a
       # document write auto-create it with a dynamic one.
       - action.auto_create_index=-marad_listings,+*
+      # Single-node dev cluster: do not turn indices read-only when the laptop disk is
+      # nearly full (the default flood-stage watermark is 95% of the host disk).
+      - cluster.routing.allocation.disk.threshold_enabled=false
     ports:
       - "127.0.0.1:9200:9200"
     volumes:

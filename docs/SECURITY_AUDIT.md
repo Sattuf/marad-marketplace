@@ -30,8 +30,8 @@
 
 | # | الخطورة | الفئة (OWASP API 2023) | المكان | المشكلة | الحالة |
 |---|---|---|---|---|---|
-| S1 | **Critical** | API8 / مكونات ضعيفة | `apps/web` (`next` 16.2.9)، شجرة npm | `npm audit`: 4 حرجة و34 عالية في مساحة العمل (next، proxy-addr، handlebars، tar، multer، axios، socket.io-parser، ws...) | ⏳ T1.2 |
-| S2 | **High** | API8 | `users-service`، `moderation-service` | 2 حرجة و13 عالية لكل منهما (lockfile مستقل) | ⏳ T1.2 |
+| S1 | **Critical** | API8 / مكونات ضعيفة | `apps/web` (`next` 16.2.9)، شجرة npm | `npm audit`: 4 حرجة و34 عالية في مساحة العمل (next، proxy-addr، handlebars، tar، multer، axios، socket.io-parser، ws...) | ✅ `npm audit --omit=dev`: **0 حرجة / 0 عالية** (كانت 4 / 34). next 16.4.6، bcrypt 6، sharp 0.35.5، و`overrides` للاعتماديات الانتقالية (ADR-005). بقيت 4 عالية في أدوات البناء فقط (`@nestjs/cli`: glob، picomatch، tmp) — لا تُشحن في الصور ⚠️ |
+| S2 | **High** | API8 | `users-service`، `moderation-service` | 2 حرجة و13 عالية لكل منهما (lockfile مستقل) | ✅ 0 / 0 في اعتماديات الإنتاج |
 | S3 | **High** | API2 | `fraud-service` | `python-jose 3.3.0`: ثغرات خلط الخوارزمية وDoS (PYSEC-2024-232/233) وثغرات بلا إصلاح (PYSEC-2025-185، 2026-4298)، و`ecdsa` بلا إصلاح | ⏳ T1.3 (الانتقال إلى PyJWT) |
 | S4 | **High** | API8 | `fraud-service` | `starlette 0.38.6` (عبر fastapi 0.115.0): عدة ثغرات DoS/multipart | ⏳ T1.3 |
 | S5 | **High** | API8 / Docker | `infra/docker-compose.yml` | `localstack` يربط `/var/run/docker.sock` → صلاحية root على المضيف لأي اختراق للحاوية | ✅ أُزيل الربط (KMS لا يحتاجه) |
