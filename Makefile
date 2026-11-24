@@ -1,7 +1,7 @@
 # Ma'rad Al-Ashya' — developer entry points. `make up` is the only command you need.
 COMPOSE := docker compose -f infra/docker-compose.yml
 
-.PHONY: help env up seed down logs ps e2e clean
+.PHONY: help env up seed demo down logs ps e2e clean
 
 help: ## List targets
 	@grep -E '^[a-z0-9-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-8s %s\n", $$1, $$2}'
@@ -20,6 +20,9 @@ up: env ## Build and start the whole stack, wait until every service is healthy
 
 seed: ## Load demo accounts and listings (idempotent)
 	node scripts/seed-demo.mjs
+
+demo: ## Guided tour through the API (after make up)
+	sh scripts/demo.sh
 
 down: ## Stop the stack (keeps data volumes)
 	$(COMPOSE) down

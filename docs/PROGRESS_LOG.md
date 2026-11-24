@@ -116,3 +116,8 @@
 - `infra/helm/marad`: Deployment/Service/PDB لـ 12 مكوّناً، HPA، Ingress (API + socket + web)، NetworkPolicy (رفض افتراضي)، Job ترحيلات كـ hook، securityContext صارم، أسرار من Kubernetes Secrets خارجية (`marad-app`، و`marad-auth-signing` لـ auth وحده).
 - `helm lint --strict` ✅، `helm template` → 44 كائناً ✅. Trivy (config) على المخرجات: لا HIGH/CRITICAL؛ المتبقي MEDIUM خاص بالبيئة (قائمة السجلات المسموحة) + تنبيه heuristic على اسم `COOKIE_DOMAIN`.
 - kubeconform غير متاح (ghcr.io محجوب هنا) — Trivy بديلاً. `helm lint` أُضيف إلى CI. `docs/DEPLOYMENT.md`: البناء، الأسرار، التثبيت، تدوير المفاتيح. حُذف `infra/k8s/.gitkeep` الفارغ.
+
+### T9.1 — README + مخطط + demo ✅
+- `README.md` جديد ثنائي اللغة (الإنجليزية أولاً للجمهور المستهدف): أبرز النقاط، مخطط Mermaid، جدول الخدمات، التشغيل، أمثلة طلبات، 4 لقطات حقيقية (`docs/images/`: لوحة الإدارة، trace في Jaeger عبر 5 خدمات، Swagger الموحد، Grafana). القديم في `archive/`.
+- `scripts/demo.sh` / `make demo`: جولة من 7 خطوات (صحة، seed، دخول بـ RS256، نشر إعلان مع Request ID، بحث A/B، رفض رمز مزوّر وحجب مسار داخلي، صيغة الخطأ الموحدة) — نُفّذت بنجاح.
+- الأرقام في README تحققت منها: 13 صورة، 19 حاوية دائمة + job ترحيلات، ~300 اختبار.
