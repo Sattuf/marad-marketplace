@@ -102,6 +102,29 @@ graph LR
 4. `localstack` يربط `/var/run/docker.sock` (صلاحية root على المضيف).
 5. صور بوسم `latest` (prometheus، grafana، localstack) → بناء غير قابل للتكرار.
 
-## 6. ما يعمل الآن
+## 6. ما يعمل الآن (2026-11-25 — بعد تنفيذ الخارطة)
 
-يُحدَّث هذا القسم مع كل مهمة — انظر [ROADMAP.md](ROADMAP.md).
+| المجال | الحالة |
+|---|---|
+| التشغيل | `make up` من الصفر → 19 حاوية + job ترحيلات، كل الخدمات `healthy` خلال ~2.3 دقيقة؛ `make seed`، `make demo`، `make e2e` (52/52) |
+| الأمن | 0 حرجة/عالية مفتوحة (npm audit prod، pip-audit، Trivy، gitleaks)؛ RS256 + JWKS؛ كوكي HttpOnly للويب؛ تحقق DTO في كل الخدمات؛ حاويات غير root وللقراءة فقط |
+| التوحيد | بوابة واحدة، Swagger موحد لـ 10 خدمات، صيغة أخطاء واحدة + `X-Request-ID` |
+| الاختبارات | ~300 اختبار وحدة/تكامل + E2E على المكدس الكامل في CI؛ lint بلا تحذيرات في الخدمات |
+| المراقبة | سجلات JSON (requestId + trace_id)، OpenTelemetry → Jaeger (11/11 خدمة)، Prometheus + Grafana |
+| CI/CD | build/lint/test/integration/E2E + CodeQL + Trivy + gitleaks + npm audit + Dependabot + helm lint |
+| النشر | Helm chart جاهز (`docs/DEPLOYMENT.md`) — لم يُنشر |
+
+```mermaid
+graph TB
+  U[Browser / Flutter] --> I[Ingress / localhost]
+  I --> W[web :3100]
+  I --> G[api-gateway :3000]
+  I -. socket.io .-> M[messaging :3004]
+  G --> S[10 services]
+  S --> D[(Postgres · Redis · Elasticsearch)]
+  G & S -. OTLP .-> J[Jaeger]
+  P[Prometheus] -. scrape .-> G & S
+  P --> GR[Grafana]
+```
+
+المتبقي والمفتوح: انظر "ما بقي" في [FINAL_REPORT.md](FINAL_REPORT.md).
