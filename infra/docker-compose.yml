@@ -1,507 +1,339 @@
-# معرض الأشياء — Docker Compose (Development Environment)
-# Sprint 0 / الأسبوع 2 — بيئة التطوير المحلية الكاملة
+# Ma'rad Al-Ashya' — local stack. One command from the repo root:
 #
-# الاستخدام:
-#   docker compose -f infra/docker-compose.yml up -d                     → الخدمات الأساسية فقط
-#   docker compose -f infra/docker-compose.yml --profile search up -d    → + Elasticsearch + Search Service
-#   docker compose -f infra/docker-compose.yml --profile monitoring up -d → + Prometheus + Grafana
-#   docker compose -f infra/docker-compose.yml --profile identity up -d  → + LocalStack + Identity Service
-#   docker compose -f infra/docker-compose.yml --profile ai up -d        → + Fraud + Personalization
-#   docker compose -f infra/docker-compose.yml --profile all up -d       → كل شيء
+#   make up            (generates infra/.env on first run, builds, starts, waits for health)
+#   docker compose -f infra/docker-compose.yml up -d --build   (if infra/.env already exists)
+#
+# Secrets and credentials come from infra/.env (see infra/.env.example). There are
+# deliberately no defaults for secrets: compose refuses to start without them.
+#
+# Only the public entry points are published on the host: the web app, the API gateway,
+# the chat socket, and the observability UIs. Every service is reachable only through the
+# gateway, exactly as in production.
 
-# الأسرار تُقرأ من infra/.env (انسخ infra/.env.example) — Secrets come from infra/.env.
-# There are deliberately no defaults: every service refuses to start without them.
+name: marad
+
+x-build-secrets: &build-secrets
+  # Optional extra CA for building behind a TLS-intercepting proxy (ADR-003).
+  # Empty by default; set EXTRA_CA_CERT=/path/to/ca.pem in infra/.env when needed.
+  secrets: [extra_ca]
+
+x-service: &service
+  restart: unless-stopped
+  networks: [marad-network]
+  read_only: true
+  tmpfs: [/tmp]
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "3" }
+
+# Shared by every application service.
+x-app-env: &app-env
+  NODE_ENV: ${NODE_ENV:-development}
+  ENV: ${NODE_ENV:-development}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET in infra/.env}
+  INTERNAL_SECRET: ${INTERNAL_SECRET:?set INTERNAL_SECRET in infra/.env}
+  DATABASE_URL: postgresql://${POSTGRES_USER:-marad}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in infra/.env}@postgres:5432/${POSTGRES_DB:-marad_db}
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3100}
+  # Public gateway address used in locally stored image URLs (your Wi-Fi IP for a phone).
+  PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:3000/api/v1}
+  # Internal service map (used by the gateway and by service-to-service calls).
+  AUTH_SERVICE_URL: http://auth-service:3001
+  LISTINGS_SERVICE_URL: http://listings-service:3002
+  SEARCH_SERVICE_URL: http://search-service:3003
+  MESSAGING_SERVICE_URL: http://messaging-service:3004
+  TRANSACTIONS_SERVICE_URL: http://transactions-service:3005
+  IDENTITY_SERVICE_URL: http://identity-service:3006
+  USERS_SERVICE_URL: http://users-service:3007
+  MODERATION_SERVICE_URL: http://moderation-service:3008
+  FRAUD_SERVICE_URL: http://fraud-service:8001
+  PERSONALIZATION_SERVICE_URL: http://personalization-service:8002
+  ELASTICSEARCH_NODE: http://elasticsearch:9200
+
+x-depends-core: &depends-core
+  migrate:
+    condition: service_completed_successfully
+  redis:
+    condition: service_healthy
 
 services:
 
-  # ============================================================================
-  # مخازن البيانات — Data Stores
-  # ============================================================================
+  # ==========================================================================
+  # Data stores
+  # ==========================================================================
 
   postgres:
-    image: postgres:16-alpine
-    container_name: marad-postgres
+    image: postgres:16.6-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: marad_user
-      POSTGRES_PASSWORD: marad_dev_password
-      POSTGRES_DB: marad_db
+      POSTGRES_USER: ${POSTGRES_USER:-marad}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in infra/.env}
+      POSTGRES_DB: ${POSTGRES_DB:-marad_db}
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    networks:
-      - marad-network
+    networks: [marad-network]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U marad_user -d marad_db"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 20
 
   redis:
-    image: redis:7-alpine
-    container_name: marad-redis
+    image: redis:7.4-alpine
     restart: unless-stopped
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     ports:
       - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
-    networks:
-      - marad-network
+    networks: [marad-network]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 20
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
-    container_name: marad-elasticsearch
+    # Official image, mirrored on Docker Hub (docker.elastic.co is not always reachable).
+    image: elasticsearch:8.15.0
     restart: unless-stopped
-    profiles: ["search", "all"]
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
-      - xpack.security.http.ssl.enabled=false
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
       - cluster.name=marad-search
+      # search-service creates marad_listings with an explicit mapping; never let a
+      # document write auto-create it with a dynamic one.
+      - action.auto_create_index=-marad_listings,+*
     ports:
       - "127.0.0.1:9200:9200"
-      - "127.0.0.1:9300:9300"
     volumes:
       - es_data:/usr/share/elasticsearch/data
-    networks:
-      - marad-network
+    networks: [marad-network]
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
-      interval: 15s
+      test: ["CMD-SHELL", "curl -fs http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s || exit 1"]
+      interval: 10s
       timeout: 10s
-      retries: 5
-      # The JVM can take over a minute to start on a laptop; failures during this grace
-      # period do not count, so search-service is not marked as failed before ES is up.
+      retries: 12
+      # The JVM can take over a minute to start on a laptop.
       start_period: 90s
 
   localstack:
-    image: localstack/localstack:latest
-    container_name: marad-localstack
-    profiles: ["identity", "all"]
-    ports:
-      - "127.0.0.1:4566:4566"
+    # KMS emulator for identity-service. No docker.sock mount: KMS does not need it, and
+    # mounting the socket would hand root on the host to anything inside this container.
+    image: localstack/localstack:3.8.1
+    restart: unless-stopped
     environment:
       - SERVICES=kms
       - DEFAULT_REGION=me-south-1
-      - DOCKER_HOST=unix:///var/run/docker.sock
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"
-    networks:
-      - marad-network
+    networks: [marad-network]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:4566/_localstack/health | grep -q '\"kms\": \"\\(available\\|running\\)\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
 
-  # ترحيلات قاعدة البيانات — runs db/migrations once, before any service that uses Postgres.
+  # Applies db/migrations once, before any service that uses Postgres.
   migrate:
-    image: node:20-alpine
-    container_name: marad-migrate
-    working_dir: /db
-    command: sh -c "npm ci --omit=dev --no-audit --no-fund && node migrate.mjs"
+    build:
+      context: ../db
+      <<: *build-secrets
     environment:
-      - DATABASE_URL=postgresql://marad_user:marad_dev_password@postgres:5432/marad_db
-    volumes:
-      - ../db:/db
+      DATABASE_URL: postgresql://${POSTGRES_USER:-marad}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in infra/.env}@postgres:5432/${POSTGRES_DB:-marad_db}
     depends_on:
       postgres:
         condition: service_healthy
-    networks:
-      - marad-network
+    networks: [marad-network]
+    restart: "no"
 
-  # ============================================================================
-  # خدمات NestJS المصغرة — NestJS Microservices
-  # ============================================================================
+  # ==========================================================================
+  # NestJS services
+  # ==========================================================================
 
   api-gateway:
+    <<: *service
     build:
-      context: ../services/api-gateway
-      dockerfile: Dockerfile
-      target: builder
-    container_name: marad-api-gateway
-    restart: unless-stopped
-    command: npm run start:dev
+      context: ..
+      dockerfile: infra/docker/node-workspace.Dockerfile
+      args: { SERVICE: api-gateway }
+      <<: *build-secrets
     environment:
-      - PORT=3000
-      - NODE_ENV=development
-      - AUTH_SERVICE_URL=http://auth-service:3001
-      - LISTINGS_SERVICE_URL=http://listings-service:3002
-      - SEARCH_SERVICE_URL=http://search-service:3003
-      - MESSAGING_SERVICE_URL=http://messaging-service:3004
-      - TRANSACTIONS_SERVICE_URL=http://transactions-service:3005
-      - IDENTITY_SERVICE_URL=http://identity-service:3006
-      - USERS_SERVICE_URL=http://users-service:3007
-      - MODERATION_SERVICE_URL=http://moderation-service:3008
-      - FRAUD_SERVICE_URL=http://fraud-service:8001
-      - PERSONALIZATION_SERVICE_URL=http://personalization-service:8002
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      <<: *app-env
+      PORT: "3000"
       # Bearer token Prometheus uses to scrape the gateway's public /metrics.
-      - METRICS_TOKEN=${METRICS_TOKEN:?set METRICS_TOKEN in infra/.env}
+      METRICS_TOKEN: ${METRICS_TOKEN:?set METRICS_TOKEN in infra/.env}
     ports:
       # DEVICE_BIND=0.0.0.0 in infra/.env exposes it on the Wi-Fi network (testing on a phone).
       - "${DEVICE_BIND:-127.0.0.1}:3000:3000"
-    volumes:
-      - ../services/api-gateway/src:/app/src:delegated
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
-    networks:
-      - marad-network
 
   auth-service:
+    <<: *service
     build:
-      context: ../services/auth-service
-      dockerfile: Dockerfile
-      target: builder
-    container_name: marad-auth-service
-    restart: unless-stopped
-    command: npm run start:dev
+      context: ..
+      dockerfile: infra/docker/node-workspace.Dockerfile
+      args: { SERVICE: auth-service }
+      <<: *build-secrets
     environment:
-      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET in infra/.env}
-      - INTERNAL_SECRET=${INTERNAL_SECRET:?set INTERNAL_SECRET in infra/.env}
-      - PORT=3001
-      - NODE_ENV=development
-      - DATABASE_URL=postgresql://marad_user:marad_dev_password@postgres:5432/marad_db
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:?set JWT_REFRESH_SECRET in infra/.env}
-      - OTP_MOCK_ENABLED=true
-      - TRUST_PROXY_HOPS=1
-      - FRAUD_SERVICE_URL=http://fraud-service:8001
-    volumes:
-      - ../services/auth-service/src:/app/src:delegated
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - marad-network
+      <<: *app-env
+      PORT: "3001"
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?set JWT_REFRESH_SECRET in infra/.env}
+      # Development only: OTP codes are logged instead of sent by SMS. Refused in production.
+      OTP_MOCK_ENABLED: ${OTP_MOCK_ENABLED:-true}
+      TRUST_PROXY_HOPS: "1"
+    depends_on: *depends-core
 
   listings-service:
+    <<: *service
     build:
-      context: ../services/listings-service
-      dockerfile: Dockerfile
-      target: builder
-    container_name: marad-listings-service
-    restart: unless-stopped
-    command: npm run start:dev
+      context: ..
+      dockerfile: infra/docker/node-workspace.Dockerfile
+      args: { SERVICE: listings-service }
+      <<: *build-secrets
     environment:
-      # Public gateway address used in locally stored image URLs (set to your Wi-Fi IP for a phone).
-      - PUBLIC_API_URL=${PUBLIC_API_URL:-http://localhost:3000/api/v1}
-      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET in infra/.env}
-      - INTERNAL_SECRET=${INTERNAL_SECRET:?set INTERNAL_SECRET in infra/.env}
-      - PORT=3002
-      - NODE_ENV=development
-      - DATABASE_URL=postgresql://marad_user:marad_dev_password@postgres:5432/marad_db
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - ELASTICSEARCH_NODE=http://elasticsearch:9200
-      - SEARCH_SERVICE_URL=http://search-service:3003
-      - TRANSACTIONS_SERVICE_URL=http://transactions-service:3005
-      - PERSONALIZATION_SERVICE_URL=http://personalization-service:8002
-      - S3_BUCKET=marad-listings-images
-      - S3_REGION=me-south-1
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
-      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      <<: *app-env
+      PORT: "3002"
+      S3_BUCKET: marad-listings-images
+      S3_REGION: me-south-1
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
     volumes:
-      - ../services/listings-service/src:/app/src:delegated
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - marad-network
+      # Local image storage when S3 is not configured (STORAGE_PROVIDER != s3).
+      - listings_media:/app/services/listings-service/tmp
+    depends_on: *depends-core
 
   search-service:
+    <<: *service
     build:
-      context: ../services/search-service
-      dockerfile: Dockerfile
-      target: builder
-    container_name: marad-search-service
-    restart: unless-stopped
-    profiles: ["search", "all"]
-    command: npm run start:dev
+      context: ..
+      dockerfile: infra/docker/node-workspace.Dockerfile
+      args: { SERVICE: search-service }
+      <<: *build-secrets
     environment:
-      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET in infra/.env}
-      - INTERNAL_SECRET=${INTERNAL_SECRET:?set INTERNAL_SECRET in infra/.env}
-      - PORT=3003
-      - NODE_ENV=development
-      - ELASTICSEARCH_NODE=http://elasticsearch:9200
-      # Search clicks and A/B results are written to Postgres (ab_test_results).
-      - DATABASE_URL=postgresql://marad_user:marad_dev_password@postgres:5432/marad_db
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-    volumes:
-      - ../services/search-service/src:/app/src:delegated
+      <<: *app-env
+      PORT: "3003"
     depends_on:
-      migrate:
-        condition: service_completed_successfully
-      postgres:
-        condition: service_healthy
+      <<: *depends-core
       elasticsearch:
         condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - marad-network
 
   messaging-service:
+    <<: *service
     build:
-      context: ../services/messaging-service
-      dockerfile: Dockerfile
-      target: builder
-    container_name: marad-messaging-service
-    restart: unless-stopped
-    command: npm run start:dev
+      context: ..
+      dockerfile: infra/docker/node-workspace.Dockerfile
+      args: { SERVICE: messaging-service }
+      <<: *build-secrets
     environment:
-      # Public gateway address used in locally stored image URLs (set to your Wi-Fi IP for a phone).
-      - PUBLIC_API_URL=${PUBLIC_API_URL:-http://localhost:3000/api/v1}
-      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET in infra/.env}
-      - INTERNAL_SECRET=${INTERNAL_SECRET:?set INTERNAL_SECRET in infra/.env}
-      - PORT=3004
-      - NODE_ENV=development
-      - DATABASE_URL=postgresql://marad_user:marad_dev_password@postgres:5432/marad_db
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      <<: *app-env
+      PORT: "3004"
     ports:
+      # Socket.IO endpoint used directly by the web and mobile apps.
       - "${DEVICE_BIND:-127.0.0.1}:3004:3004"
     volumes:
-      - ../services/messaging-service/src:/app/src:delegated
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - marad-network
+      - messaging_media:/app/services/messaging-service/uploads
+    depends_on: *depends-core
 
   transactions-service:
+    <<: *service
     build:
-      context: ../services/transactions-service
-      dockerfile: Dockerfile
-      target: builder
-    container_name: marad-transactions-service
-    restart: unless-stopped
-    command: npm run start:dev
+      context: ..
+      dockerfile: infra/docker/node-workspace.Dockerfile
+      args: { SERVICE: transactions-service }
+      <<: *build-secrets
     environment:
-      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET in infra/.env}
-      - INTERNAL_SECRET=${INTERNAL_SECRET:?set INTERNAL_SECRET in infra/.env}
-      - PORT=3005
-      - NODE_ENV=development
-      - DATABASE_URL=postgresql://marad_user:marad_dev_password@postgres:5432/marad_db
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - LISTINGS_SERVICE_URL=http://listings-service:3002
-      - FRAUD_SERVICE_URL=http://fraud-service:8001
-    ports:
-      - "127.0.0.1:3005:3005"
-    volumes:
-      - ../services/transactions-service/src:/app/src:delegated
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - marad-network
+      <<: *app-env
+      PORT: "3005"
+    depends_on: *depends-core
 
   identity-service:
+    <<: *service
     build:
-      context: ../services/identity-service
-      dockerfile: Dockerfile
-      target: builder
-    container_name: marad-identity-service
-    restart: unless-stopped
-    profiles: ["identity", "all"]
-    command: npm run start:dev
+      context: ..
+      dockerfile: infra/docker/node-workspace.Dockerfile
+      args: { SERVICE: identity-service }
+      <<: *build-secrets
     environment:
-      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET in infra/.env}
-      - INTERNAL_SECRET=${INTERNAL_SECRET:?set INTERNAL_SECRET in infra/.env}
-      - PORT=3006
-      - NODE_ENV=development
-      - DATABASE_URL=postgresql://marad_user:marad_dev_password@postgres:5432/marad_db
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - DIDIT_API_KEY=dev-didit-api-key
-      - DIDIT_WEBHOOK_SECRET=${DIDIT_WEBHOOK_SECRET:?set DIDIT_WEBHOOK_SECRET in infra/.env}
-      - USERS_SERVICE_URL=http://users-service:3007
-      - DIDIT_API_URL=https://api.didit.me
-      - AWS_REGION=me-south-1
-      - AWS_ACCESS_KEY_ID=test
-      - AWS_SECRET_ACCESS_KEY=test
-      - KMS_ENDPOINT=http://localstack:4566
-    volumes:
-      - ../services/identity-service/src:/app/src:delegated
+      <<: *app-env
+      PORT: "3006"
+      DIDIT_API_KEY: ${DIDIT_API_KEY:-}
+      DIDIT_WEBHOOK_SECRET: ${DIDIT_WEBHOOK_SECRET:?set DIDIT_WEBHOOK_SECRET in infra/.env}
+      DIDIT_API_URL: https://api.didit.me
+      AWS_REGION: me-south-1
+      # LocalStack accepts any credentials; these are not real AWS keys.
+      AWS_ACCESS_KEY_ID: localstack
+      AWS_SECRET_ACCESS_KEY: localstack
+      KMS_ENDPOINT: http://localstack:4566
     depends_on:
-      migrate:
-        condition: service_completed_successfully
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      <<: *depends-core
       localstack:
-        condition: service_started
-    networks:
-      - marad-network
+        condition: service_healthy
 
   users-service:
+    <<: *service
     build:
       context: ../services/users-service
-      dockerfile: Dockerfile
-      target: builder
-    container_name: marad-users-service
-    restart: unless-stopped
-    command: npm run start:dev
+      <<: *build-secrets
     environment:
-      # Public gateway address used in locally stored image URLs (set to your Wi-Fi IP for a phone).
-      - PUBLIC_API_URL=${PUBLIC_API_URL:-http://localhost:3000/api/v1}
-      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET in infra/.env}
-      - INTERNAL_SECRET=${INTERNAL_SECRET:?set INTERNAL_SECRET in infra/.env}
-      - PORT=3007
-      - NODE_ENV=development
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=marad_user
-      - DB_PASSWORD=marad_dev_password
-      - DB_NAME=marad_db
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - LISTINGS_SERVICE_URL=http://listings-service:3002
-    ports:
-      - "127.0.0.1:3007:3007"
+      <<: *app-env
+      PORT: "3007"
     volumes:
-      - ../services/users-service/src:/app/src:delegated
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - marad-network
+      - users_media:/app/tmp
+    depends_on: *depends-core
 
   moderation-service:
+    <<: *service
     build:
       context: ../services/moderation-service
-      dockerfile: Dockerfile
-    container_name: marad-moderation-service
-    ports:
-      - "127.0.0.1:3008:3008"
+      <<: *build-secrets
     environment:
-      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET in infra/.env}
-      - INTERNAL_SECRET=${INTERNAL_SECRET:?set INTERNAL_SECRET in infra/.env}
-      - PORT=3008
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=marad_user
-      - DB_PASSWORD=marad_dev_password
-      - DB_NAME=marad_db
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - LISTINGS_SERVICE_URL=http://listings-service:3002
-      - USERS_SERVICE_URL=http://users-service:3007
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - marad-network
+      <<: *app-env
+      PORT: "3008"
+    depends_on: *depends-core
 
-  # ============================================================================
-  # خدمات Python — Python Services
-  # ============================================================================
+  # ==========================================================================
+  # Python services
+  # ==========================================================================
 
   fraud-service:
+    <<: *service
     build:
       context: ../services/fraud-service
-      dockerfile: Dockerfile
-    container_name: marad-fraud-service
-    restart: unless-stopped
-    profiles: ["ai", "all"]
+      <<: *build-secrets
     environment:
-      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET in infra/.env}
-      - INTERNAL_SECRET=${INTERNAL_SECRET:?set INTERNAL_SECRET in infra/.env}
-      - PORT=8001
-      - ENV=development
-      - DATABASE_URL=postgresql://marad_user:marad_dev_password@postgres:5432/marad_db
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      # Admin "lock account" suspends through users-service.
-      - USERS_SERVICE_URL=http://users-service:3007
-    ports:
-      - "127.0.0.1:8001:8001"
-    volumes:
-      - ../services/fraud-service/app:/app/app:delegated
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - marad-network
+      <<: *app-env
+      PORT: "8001"
+    depends_on: *depends-core
 
   personalization-service:
+    <<: *service
     build:
       context: ../services/personalization-service
-      dockerfile: Dockerfile
-    container_name: marad-personalization-service
-    restart: unless-stopped
-    profiles: ["ai", "all"]
+      <<: *build-secrets
     environment:
-      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET in infra/.env}
-      - INTERNAL_SECRET=${INTERNAL_SECRET:?set INTERNAL_SECRET in infra/.env}
-      - PORT=8002
-      - ENV=development
-      - DATABASE_URL=postgresql://marad_user:marad_dev_password@postgres:5432/marad_db
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - ELASTICSEARCH_NODE=http://elasticsearch:9200
-    ports:
-      - "127.0.0.1:8002:8002"
-    volumes:
-      - ../services/personalization-service/app:/app/app:delegated
+      <<: *app-env
+      PORT: "8002"
     depends_on:
-      migrate:
-        condition: service_completed_successfully
-      postgres:
+      <<: *depends-core
+      elasticsearch:
         condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - marad-network
 
-  # ============================================================================
-  # Monitoring & Observability
-  # ============================================================================
+  # ==========================================================================
+  # Monitoring
+  # ==========================================================================
 
   prometheus:
-    image: prom/prometheus:latest
-    container_name: marad-prometheus
+    image: prom/prometheus:v2.55.1
     restart: unless-stopped
-    profiles: ["monitoring", "all"]
     ports:
       - "127.0.0.1:9090:9090"
     volumes:
@@ -512,16 +344,13 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
-    networks:
-      - marad-network
+    networks: [marad-network]
 
   grafana:
-    image: grafana/grafana:latest
-    container_name: marad-grafana
+    image: grafana/grafana:11.3.1
     restart: unless-stopped
-    profiles: ["monitoring", "all"]
     ports:
-      # 3100 is the web app's dev port.
+      # 3100 is the web app's port.
       - "127.0.0.1:3200:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=admin
@@ -532,31 +361,25 @@ services:
       - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
     depends_on:
       - prometheus
-    networks:
-      - marad-network
-
-# ============================================================================
-# الشبكة والتخزين — Networks & Volumes
-# ============================================================================
+    networks: [marad-network]
 
 networks:
   marad-network:
-    driver: bridge
     name: marad-network
 
 secrets:
-  # Read from infra/.env; Prometheus reads it as a file (it cannot expand env vars).
+  # Prometheus reads the gateway token as a file (it cannot expand env vars).
   metrics_token:
     environment: METRICS_TOKEN
+  extra_ca:
+    file: ${EXTRA_CA_CERT:-/dev/null}
 
 volumes:
   postgres_data:
-    name: marad-postgres-data
   redis_data:
-    name: marad-redis-data
   es_data:
-    name: marad-es-data
+  listings_media:
+  messaging_media:
+  users_media:
   prometheus_data:
-    name: marad-prometheus-data
   grafana_data:
-    name: marad-grafana-data

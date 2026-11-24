@@ -43,7 +43,7 @@ PUBLIC_API_URL=http://192.168.1.20:3000/api/v1
 ```bash
 docker compose -f infra/docker-compose.yml up -d --build --remove-orphans
 # لتشغيل البحث المرتّب أيضاً (Elasticsearch):
-#   docker compose -f infra/docker-compose.yml --profile search up -d --build --remove-orphans
+#   make up    (or: docker compose -f infra/docker-compose.yml up -d --build --wait)
 ```
 
 - خدمة `migrate` تنشئ جداول Postgres تلقائياً قبل بقية الخدمات.

@@ -1,0 +1,18 @@
+# Build context for infra/docker/node-workspace.Dockerfile (repo root).
+**/node_modules
+**/dist
+**/.next
+**/coverage
+**/tmp
+**/uploads
+**/.env
+**/.env.*
+!**/.env.example
+.git
+apps/mobile
+docs
+infra
+!infra/docker
+archive
+**/__pycache__
+**/.venv

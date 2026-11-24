@@ -76,7 +76,7 @@
 
 ## 2. لوحة التشغيل (Grafana)
 
-`infra/monitoring/grafana/dashboards/operations.json`، وتُحمَّل تلقائياً مع مصدر بيانات Prometheus (`grafana/datasources/prometheus.yml`). تعمل مع `docker compose --profile monitoring` على `http://localhost:3200`، وقد نُقلت من 3100 لأنه منفذ تطبيق الويب.
+`infra/monitoring/grafana/dashboards/operations.json`، وتُحمَّل تلقائياً مع مصدر بيانات Prometheus (`grafana/datasources/prometheus.yml`). تعمل مع `make up` على `http://localhost:3200`، وقد نُقلت من 3100 لأنه منفذ تطبيق الويب.
 
 | القسم | اللوحات |
 |---|---|

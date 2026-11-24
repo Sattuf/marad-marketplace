@@ -164,7 +164,7 @@ check(browse.status === 200 && JSON.stringify(browseItems).includes(listingId), 
 const detail = await call('GET', `/listings/${listingId}`);
 check(detail.status === 200 && JSON.stringify(detail.data).includes('/media/listings/'), 'listing details include its image', detail.data);
 
-// Ranked search (search profile: Elasticsearch + search-service). Skipped when not running.
+// Ranked search (Elasticsearch + search-service are part of the default stack).
 const session = `smoke-${run}`;
 // Indexing runs in the background after publishing: the listing becomes searchable within
 // about a second (Elasticsearch refresh), so allow a few seconds before failing.
@@ -173,7 +173,8 @@ for (let i = 0; i < 10 && searchRes.status === 200 && !searchRes.data.ids.includ
   await new Promise((r) => setTimeout(r, 500));
   searchRes = await call('GET', `/search?q=${encodeURIComponent('جوال')}&session_id=${session}&page=1&limit=10`);
 }
-if (searchRes.status === 200) {
+check(searchRes.status === 200, 'ranked search answers', searchRes.data);
+{
   check(searchRes.data.ids.includes(listingId), `ranked search finds the listing (variant ${searchRes.data.variant})`, searchRes.data);
   const click = await call('POST', '/search/track-click', {
     body: { query: 'جوال', listing_id: listingId, position: searchRes.data.ids.indexOf(listingId), variant: searchRes.data.variant, session_id: session },
@@ -183,8 +184,6 @@ if (searchRes.status === 200) {
     body: { query: 'جوال', listing_id: listingId, position: 0, variant: searchRes.data.variant === 'A' ? 'B' : 'A', session_id: session },
   });
   check(forged.data?.tracked === false, 'a click claiming the other variant is rejected', forged.data);
-} else {
-  console.log(`- ranked search skipped (search profile not running: ${searchRes.status})`);
 }
 
 const fav = await call('POST', `/users/favorites/${listingId}`, { token: buyer.token });

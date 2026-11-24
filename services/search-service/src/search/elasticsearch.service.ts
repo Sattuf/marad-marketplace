@@ -15,8 +15,30 @@ export class ElasticsearchService implements OnModuleInit {
     });
   }
 
-  async onModuleInit() {
-    try {
+  /**
+   * Elasticsearch can still be starting (or restarting) when this service boots. Creating the
+   * index once and giving up let the first indexed document auto-create it with a dynamic
+   * mapping (geo_point as numbers, keywords as text), which breaks ranked search for good.
+   * So retry with backoff; the deployment also disables auto-creation of this index.
+   */
+  async onModuleInit(attempts = Number(process.env.ES_INIT_ATTEMPTS ?? 30), delayMs = 2000) {
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+      try {
+        await this.ensureIndex();
+        return;
+      } catch (error) {
+        const last = attempt === attempts;
+        this.logger[last ? 'error' : 'warn'](
+          `Elasticsearch index not ready (attempt ${attempt}/${attempts}): ${error.message}`,
+        );
+        if (last) return;
+        await new Promise((resolve) => setTimeout(resolve, Math.min(delayMs * attempt, 10_000)));
+      }
+    }
+  }
+
+  private async ensureIndex() {
+    {
       const indexExists = await this.client.indices.exists({ index: this.indexName });
       if (!indexExists) {
         await this.client.indices.create({
@@ -80,8 +102,6 @@ export class ElasticsearchService implements OnModuleInit {
         });
         this.logger.log(`Index ${this.indexName} already exists; mapping ensured`);
       }
-    } catch (error) {
-      this.logger.error(`Error initializing Elasticsearch index: ${error.message}`);
     }
   }
   async updateDocumentFields(
