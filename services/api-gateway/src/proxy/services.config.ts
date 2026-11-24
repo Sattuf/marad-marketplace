@@ -20,6 +20,11 @@ export interface ServiceConfig {
    * because the service counts a view on every request.
    */
   cacheableRoutes?: RegExp;
+  /**
+   * API docs only: which gateway prefix an operation is published under, by its OpenAPI tag
+   * (lower case), when one service is reached through several stripped prefixes.
+   */
+  docsPrefixByTag?: Record<string, string>;
 }
 
 /**
@@ -120,6 +125,7 @@ export const SERVICES_CONFIG: ServiceConfig[] = [
     url: process.env.TRANSACTIONS_SERVICE_URL || 'http://localhost:3005',
     prefix: 'transactions',
     description: 'خدمة إدارة المعاملات — Transactions Management',
+    docsPrefixByTag: { reviews: 'transactions', transactions: 'transactions', admin: 'transactions' },
   },
   {
     name: 'transactions-service-reviews',

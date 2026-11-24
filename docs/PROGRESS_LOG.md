@@ -77,3 +77,9 @@
 - `scripts/gen-jwt-keys.mjs` + `gen-env.sh` يولّد زوج المفاتيح، ويضيفه لـ `.env` موجود دون مسح قيمه.
 - مراجعة مستقلة قبل التنفيذ غيّرت التصميم في 6 نقاط (ADR-007)، وكشفت S16 الجديد.
 - **بوابة الجودة:** كل خدمات Node خضراء (transactions 36 مع 4 اختبارات سلبية جديدة)؛ fraud 15 (+2)؛ personalization 8؛ 18 حاوية healthy؛ e2e **52/52**؛ تحقق حي: رمز HS256 مزوّر بدور admin → 401 في moderation/fraud/auth، والرمز الحقيقي → 200.
+
+### T4.1 — OpenAPI موحد في البوابة ✅
+- `GET /api/docs/specs/<service>.json`: البوابة تجلب مواصفة كل خدمة داخلياً (Nest `/api/docs-json` أو FastAPI `/openapi.json`) وتعيد كتابتها بالمسارات العامة: `servers: /api/v1`، إضافة البادئة حسب قواعد التوجيه (strip/override، وتلميح `docsPrefixByTag` لخدمة خلف عدة بادئات)، وحذف المسارات المحجوبة (internal) و health/metrics.
+- Swagger UI في `/api/docs` بقائمة منسدلة لـ 11 مواصفة (البوابة + 10 خدمات)؛ "Try it out" يمر عبر البوابة مع Bearer.
+- users-service لم يكن فيه Swagger أصلاً → أُضيف (وأصبح منفذه الافتراضي 3007 بدل 3000، يغلق S15).
+- **بوابة الجودة:** gateway 49 (+3)، users 8؛ كل المواصفات العشر تُجلب؛ تحقق: مسارات transactions/moderation تطابق التوجيه الفعلي (GET `/api/v1/transactions` → 200).
