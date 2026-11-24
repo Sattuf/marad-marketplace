@@ -9,7 +9,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { authApi } from '@/lib/api/auth';
 import { useAuthStore } from '@/lib/store/auth-store';
-import Cookies from 'js-cookie';
 import { Alert, Button, Input } from '@/components/ui';
 import { SocialLogin } from '@/components/auth/SocialLogin';
 import { safeNext } from '@/lib/safe-next';
@@ -38,9 +37,6 @@ export default function LoginPage() {
     try {
       setError(null);
       const res = await authApi.login(data);
-      
-      localStorage.setItem('access_token', res.tokens.access_token);
-      Cookies.set('refresh_token', res.tokens.refresh_token, { expires: 7, secure: true, sameSite: 'strict' });
       
       setAuth(res.user, res.tokens.access_token);
       router.replace(safeNext(new URLSearchParams(window.location.search).get('next')));

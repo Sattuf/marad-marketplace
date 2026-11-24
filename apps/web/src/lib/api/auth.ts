@@ -1,5 +1,4 @@
 import axios from 'axios';
-import Cookies from 'js-cookie';
 
 declare module 'axios' {
   interface AxiosRequestConfig {
@@ -18,18 +17,45 @@ export const api = axios.create({
   },
 });
 
-// Request interceptor to add token
+/**
+ * Session model (docs/SECURITY_AUDIT.md S10): the access token lives only in this module's
+ * memory (gone on reload, never in localStorage); the refresh token lives only in an HttpOnly
+ * cookie set by auth-service, which page scripts cannot read. A reload restores the session
+ * through POST /auth/refresh. `marad_session` is a non-secret flag cookie saying one exists.
+ */
+let accessToken: string | null = null;
+export const getAccessToken = () => accessToken;
+export const setAccessToken = (token: string | null) => {
+  accessToken = token;
+};
+
+/** Opts in to the cookie session (and forces a CORS preflight, which blocks CSRF). */
+const SESSION = { withCredentials: true, headers: { 'X-Session-Cookie': '1' } } as const;
+
+export const hasSessionFlag = () =>
+  typeof document !== 'undefined' && document.cookie.split(';').some((c) => c.trim().startsWith('marad_session=1'));
+
+let refreshing: Promise<string> | null = null;
+/** Exchanges the refresh cookie for a new access token; concurrent callers share one call. */
+export function refreshSession(): Promise<string> {
+  refreshing ??= axios
+    .post(`${API_URL}/auth/refresh`, {}, SESSION)
+    .then(({ data }) => {
+      setAccessToken(data.tokens.access_token);
+      return data.tokens.access_token as string;
+    })
+    .finally(() => {
+      refreshing = null;
+    });
+  return refreshing;
+}
+
 api.interceptors.request.use((config) => {
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-  }
+  if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
   return config;
 });
 
-// Response interceptor to handle token refresh
+// An expired access token: refresh once through the cookie, then replay the request.
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -37,29 +63,13 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
-        const refreshToken = Cookies.get('refresh_token');
-        if (!refreshToken) throw new Error('No refresh token');
-
-        const { data } = await axios.post(`${API_URL}/auth/refresh`, {
-          refresh_token: refreshToken,
-        });
-
-        const newAccessToken = data.tokens.access_token;
-        const newRefreshToken = data.tokens.refresh_token;
-
-        localStorage.setItem('access_token', newAccessToken);
-        Cookies.set('refresh_token', newRefreshToken, { expires: 7, secure: true, sameSite: 'strict' });
-
-        api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
+        await refreshSession();
         return api(originalRequest);
       } catch (refreshError) {
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('access_token');
-          Cookies.remove('refresh_token');
-          // Background checks (session restore) must not push a guest off a public page.
-          if (!originalRequest.skipLoginRedirect) {
-            window.location.href = `/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
-          }
+        setAccessToken(null);
+        // Background checks (session restore) must not push a guest off a public page.
+        if (typeof window !== 'undefined' && !originalRequest.skipLoginRedirect) {
+          window.location.href = `/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
         }
         return Promise.reject(refreshError);
       }
@@ -68,15 +78,21 @@ api.interceptors.response.use(
   }
 );
 
+/** Stores the access token of a sign-in response (its refresh token arrived as a cookie). */
+function signedIn<T extends { tokens?: { access_token?: string } }>(data: T): T {
+  if (data?.tokens?.access_token) setAccessToken(data.tokens.access_token);
+  return data;
+}
+
 export const authApi = {
   register: async (data: { email?: string; phone?: string; fullName: string; password: string }) => {
-    const response = await api.post('/auth/register', data);
-    return response.data;
+    const response = await api.post('/auth/register', data, SESSION);
+    return signedIn(response.data);
   },
   
   login: async (data: { identifier: string; password: string }) => {
-    const response = await api.post('/auth/login', data);
-    return response.data;
+    const response = await api.post('/auth/login', data, SESSION);
+    return signedIn(response.data);
   },
   
   sendOtp: async (phone: string) => {
@@ -85,18 +101,13 @@ export const authApi = {
   },
   
   verifyOtp: async (data: { phone: string; code: string }) => {
-    const response = await api.post('/auth/verify-otp', data);
-    return response.data;
+    const response = await api.post('/auth/verify-otp', data, SESSION);
+    return signedIn(response.data);
   },
   
   logout: async () => {
-    const refreshToken = Cookies.get('refresh_token');
-    if (refreshToken) {
-      await api.post('/auth/logout', { refresh_token: refreshToken }).catch(() => {});
-    }
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('access_token');
-      Cookies.remove('refresh_token');
-    }
+    // Revokes the refresh token and clears both cookies.
+    await api.post('/auth/logout', {}, SESSION).catch(() => {});
+    setAccessToken(null);
   },
 };

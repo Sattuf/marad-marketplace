@@ -5,7 +5,6 @@ import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { authApi } from '@/lib/api/auth';
 import { useAuthStore } from '@/lib/store/auth-store';
-import Cookies from 'js-cookie';
 
 function VerifyOtpContent() {
   const router = useRouter();
@@ -72,9 +71,6 @@ function VerifyOtpContent() {
       setError(null);
       
       const res = await authApi.verifyOtp({ phone, code });
-      
-      localStorage.setItem('access_token', res.tokens.access_token);
-      Cookies.set('refresh_token', res.tokens.refresh_token, { expires: 7, secure: true, sameSite: 'strict' });
       
       setAuth(res.user, res.tokens.access_token);
       router.push('/');

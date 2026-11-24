@@ -9,7 +9,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { authApi } from '@/lib/api/auth';
 import { useAuthStore } from '@/lib/store/auth-store';
-import Cookies from 'js-cookie';
 import { getFingerprint } from '@/lib/fingerprint';
 import { SocialLogin } from '@/components/auth/SocialLogin';
 
@@ -66,9 +65,6 @@ export default function RegisterPage() {
       };
 
       const res = await authApi.register(payload);
-      
-      localStorage.setItem('access_token', res.tokens.access_token);
-      Cookies.set('refresh_token', res.tokens.refresh_token, { expires: 7, secure: true, sameSite: 'strict' });
       
       setAuth(res.user, res.tokens.access_token);
       router.push('/');
