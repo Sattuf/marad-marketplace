@@ -50,3 +50,9 @@
   3. **كل صور الإعلانات كانت محجوبة في الويب**: helmet في البوابة يضع `Cross-Origin-Resource-Policy: same-origin`، والويب (:3100) يحمّل الصور من البوابة (:3000). الحل: `same-site` (المنفذ لا يدخل في "الموقع"). تحقق بلقطة Playwright: 0 أخطاء متصفح.
 - `scripts/seed-demo.mjs` + `make seed`: 3 حسابات (بائع، مشترٍ، مشرف) و12 إعلاناً بصور، عبر الـ API العامة؛ ترقية المشرف عبر SQL لأنه لا يوجد (عمداً) endpoint يمنح دور admin. Idempotent (أول نسخة لم تكن كذلك بسبب كاش البوابة 30 ثانية — أُصلح).
 - **بوابة الجودة:** web tsc + 61 اختباراً + `next build`؛ gateway tsc؛ 18 حاوية healthy؛ seed مرتين بلا تكرار.
+
+### T3.1 — Socket.IO عبر Redis (P10) ✅
+- وُجد أن بث الحضور كان مقصوراً على الغرف أصلاً وتتبّع الاتصالات في Redis؛ الناقص كان الـ adapter فقط: كل نسخة من messaging كانت ترى عملاءها وحدهم.
+- `RedisIoAdapter` (`@socket.io/redis-adapter` + ioredis pub/sub) مفعّل افتراضياً (`SOCKET_REDIS_ADAPTER=false` للتعطيل).
+- اختبار تكامل: خادما Socket.IO على Redis حقيقي؛ حدث يُبث من A يصل لعميل متصل بـ B. (المحاولة الأولى علِقت لأن IoAdapter بدون تطبيق Nest يُنشئ خادم HTTP خاصاً به — صُحّح.)
+- **بوابة الجودة:** 10 اختبارات وحدة + اختبار التكامل؛ الحاوية healthy مع سجل "rooms are shared through Redis"؛ e2e **52/52**.
