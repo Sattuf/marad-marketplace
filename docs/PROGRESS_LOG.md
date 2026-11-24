@@ -90,3 +90,10 @@
 - الويب: 20 خطأ → 0. استُبدل `any` بأنواع حقيقية (`types/fraud.ts`)، وكشف ذلك عيبين فعليين في لوحة الاحتيال: عوامل الخطورة قد تكون نصوصاً (كانت تُعرض ككائن)، وتاريخ الإشارة قد يغيب (`Invalid Date`). `react-hooks/set-state-in-effect` (قاعدة React Compiler الجديدة) → تحذير موثق كدَين تقني، مع 17 تحذير `<img>`.
 - CI: خطوة lint لكل خدمة Node وللويب.
 - **بوابة الجودة:** lint نظيف في 9 خدمات؛ الويب tsc + 61 اختباراً + build؛ خدمات Node كلها خضراء.
+
+### T5.2 + T7.1 + T7.2 — CI: E2E، فحوص أمنية، بناء الصور ✅
+- `ci.yml` → job جديد `e2e`: `gen-env.sh` ← `docker compose up --build --wait` (يبني الصور الـ 13) ← seed ← `e2e-smoke` (52 فحصاً) ← سجلات عند الفشل.
+- `security.yml` جديد (push/PR + أسبوعياً): CodeQL `security-extended` لـ JS/TS وPython، gitleaks على كامل التاريخ، Trivy (vuln + misconfig + secret، يفشل على HIGH/CRITICAL)، `npm audit --omit=dev` للـ lockfiles الثلاثة.
+- `dependabot.yml`: npm (4 lockfiles)، pip (2)، Docker، GitHub Actions — مجمّعة.
+- **Trivy محلياً** (أول فحص كامل؛ الصورة كانت محجوبة بحد Docker Hub): الشجرة النشطة **0** HIGH/CRITICAL (ثغرات، إعدادات Dockerfile/compose، أسرار)؛ الإخفاقات الوحيدة في `archive/dockerfiles` (الأصلية بلا `USER`) — وهو دليل على ما أصلحه T2.1.
+- تعذّر تشغيل workflows فعلياً هنا (لا GitHub runner)؛ تحققتُ من صحة YAML وشغّلت أمر Trivy نفسه محلياً بنجاح.

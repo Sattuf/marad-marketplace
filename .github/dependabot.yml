@@ -1,0 +1,32 @@
+# Weekly dependency updates, grouped so the noise stays reviewable.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"            # root workspace: web + 7 NestJS services
+    schedule: { interval: weekly }
+    groups:
+      nestjs: { patterns: ["@nestjs/*"] }
+      minor-and-patch: { update-types: [minor, patch] }
+  - package-ecosystem: npm
+    directory: "/services/users-service"
+    schedule: { interval: weekly }
+    groups: { all: { update-types: [minor, patch] } }
+  - package-ecosystem: npm
+    directory: "/services/moderation-service"
+    schedule: { interval: weekly }
+    groups: { all: { update-types: [minor, patch] } }
+  - package-ecosystem: npm
+    directory: "/db"
+    schedule: { interval: monthly }
+  - package-ecosystem: pip
+    directory: "/services/fraud-service"
+    schedule: { interval: weekly }
+  - package-ecosystem: pip
+    directory: "/services/personalization-service"
+    schedule: { interval: weekly }
+  - package-ecosystem: docker
+    directories: ["/infra/docker", "/db", "/services/users-service", "/services/moderation-service", "/services/fraud-service", "/services/personalization-service"]
+    schedule: { interval: weekly }
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule: { interval: weekly }
