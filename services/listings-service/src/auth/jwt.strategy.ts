@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { requireSecret } from '../common/security';
+import { ACCESS_TOKEN_AUDIENCE, ACCESS_TOKEN_ISSUER, publicKeyFor } from '../common/security';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -9,8 +9,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: requireSecret('JWT_ACCESS_SECRET'),
-      algorithms: ['HS256'],
+      // RS256 only, key chosen by the token's kid from JWT_PUBLIC_JWKS (see common/security).
+      secretOrKeyProvider: (_req: any, rawJwt: any, done: any) => {
+        try {
+          const key = publicKeyFor(rawJwt);
+          return key ? done(null, key) : done(new UnauthorizedException('Unknown signing key'));
+        } catch (error) {
+          return done(error);
+        }
+      },
+      algorithms: ['RS256'],
+      issuer: ACCESS_TOKEN_ISSUER,
+      audience: ACCESS_TOKEN_AUDIENCE,
     });
   }
 

@@ -6,9 +6,13 @@ import os
 
 client = TestClient(app)
 
+from tests.conftest import sign_test_token
+
+
 def get_admin_token(secret=None, role="admin"):
-    secret = secret or os.environ["JWT_ACCESS_SECRET"]
-    return jwt.encode({"sub": "admin", "role": role}, secret, algorithm="HS256")
+    if secret:  # an HMAC token, e.g. signed with an old leaked default secret
+        return jwt.encode({"sub": "admin", "role": role, "iss": "marad-auth", "aud": "marad-api"}, secret, algorithm="HS256")
+    return sign_test_token({"sub": "admin", "role": role})
 
 def test_health_check():
     response = client.get("/health")
@@ -138,19 +142,42 @@ def test_admin_rejects_unsigned_alg_none_token():
 def test_admin_rejects_expired_token():
     import time
 
-    token = jwt.encode(
-        {"sub": "admin", "role": "admin", "exp": int(time.time()) - 60},
-        os.environ["JWT_ACCESS_SECRET"],
-        algorithm="HS256",
+    token = sign_test_token({"sub": "admin", "role": "admin", "exp": int(time.time()) - 60})
+    response = client.get("/fraud/admin/dashboard", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 401
+
+
+def test_admin_rejects_hmac_token_keyed_with_the_public_key():
+    """Algorithm confusion: HS256 'signed' with the public key must not verify."""
+    import base64, hashlib, hmac, json
+
+    from cryptography.hazmat.primitives import serialization
+    from jwt_keys import public_keys
+
+    pem = public_keys()[os.environ["TEST_JWT_KID"]].public_bytes(
+        serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
     )
-    response = client.get("/fraud/admin/dashboard", headers={"Authorization": f"Bearer {token}"})
+    b64 = lambda d: base64.urlsafe_b64encode(json.dumps(d).encode()).rstrip(b"=").decode()
+    signing_input = f"{b64({'alg': 'HS256', 'typ': 'JWT', 'kid': os.environ['TEST_JWT_KID']})}.{b64({'sub': 'admin', 'role': 'admin', 'iss': 'marad-auth', 'aud': 'marad-api'})}"
+    mac = base64.urlsafe_b64encode(hmac.new(pem, signing_input.encode(), hashlib.sha256).digest()).rstrip(b"=").decode()
+    response = client.get("/fraud/admin/dashboard", headers={"Authorization": f"Bearer {signing_input}.{mac}"})
     assert response.status_code == 401
 
 
-def test_admin_rejects_token_signed_with_another_hmac_algorithm():
-    token = jwt.encode({"sub": "admin", "role": "admin"}, os.environ["JWT_ACCESS_SECRET"], algorithm="HS512")
-    response = client.get("/fraud/admin/dashboard", headers={"Authorization": f"Bearer {token}"})
-    assert response.status_code == 401
+def test_admin_rejects_another_rsa_key_wrong_audience_and_unknown_kid():
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    other = rsa.generate_private_key(public_exponent=65537, key_size=2048).private_bytes(
+        serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()
+    )
+    for token in (
+        sign_test_token({"sub": "admin", "role": "admin"}, key=other),
+        sign_test_token({"sub": "admin", "role": "admin", "aud": "marad-refresh"}),
+        sign_test_token({"sub": "admin", "role": "admin"}, kid="unknown"),
+    ):
+        response = client.get("/fraud/admin/dashboard", headers={"Authorization": f"Bearer {token}"})
+        assert response.status_code == 401
 
 
 def test_errors_use_the_unified_body_with_request_id():

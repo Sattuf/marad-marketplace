@@ -13,8 +13,7 @@ class Settings(BaseSettings):
     DB_STATEMENT_TIMEOUT_MS: int = 5000
     REDIS_URL: str = ""
     ELASTICSEARCH_URL: str = "http://localhost:9200"
-    # Required: no default, a committed secret is a public secret.
-    JWT_ACCESS_SECRET: str
+    # Access tokens are verified with JWT_PUBLIC_JWKS (app/core/jwt_keys.py).
 
     model_config = {
         "env_file": ".env",

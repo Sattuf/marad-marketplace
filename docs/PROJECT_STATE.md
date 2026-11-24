@@ -29,7 +29,7 @@
 **قاعدة البيانات:** قاعدة Postgres واحدة مشتركة (`marad_db`) مع ملكية جداول موثّقة في
 [POSTGRES.md](POSTGRES.md)، وترحيلات موحّدة في `db/migrations` يشغّلها `db/migrate.mjs`.
 
-**المصادقة:** JWT HS256 بسر مشترك `JWT_ACCESS_SECRET`؛ كل خدمة تتحقق من التوقيع بنفسها.
+**المصادقة:** رموز وصول RS256 يوقّعها auth-service وحده بمفتاحه الخاص؛ كل خدمة تتحقق بالمفتاح العام (`JWT_PUBLIC_JWKS`، بـ `kid`) مع `iss`/`aud`. JWKS منشور على `/api/v1/auth/.well-known/jwks.json`. (كانت HS256 بسر مشترك حتى T4.2.)
 الاتصال بين الخدمات عبر ترويسة `X-Internal-Secret` بمقارنة زمن ثابت.
 
 ## 3. المعمارية

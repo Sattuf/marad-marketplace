@@ -2,8 +2,7 @@ import pytest
 from httpx import AsyncClient, ASGITransport
 import jwt
 from app.main import app
-from app.core.config import settings
-from tests.conftest import CATEGORY_1, LISTING_1
+from tests.conftest import CATEGORY_1, LISTING_1, sign_test_token
 
 USER_ID = "5f0c3e1a-0000-4000-8000-000000000123"
 
@@ -13,7 +12,7 @@ def generate_test_token(user_id=USER_ID, email="user@example.com"):
         "email": email,
         "role": "user"
     }
-    return jwt.encode(payload, settings.JWT_ACCESS_SECRET, algorithm="HS256")
+    return sign_test_token(payload)
 
 @pytest.mark.anyio
 async def test_health_check():

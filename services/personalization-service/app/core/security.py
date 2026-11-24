@@ -1,7 +1,7 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt
-from app.core.config import settings
+from app.core.jwt_keys import verify_access_token
 
 # HTTPBearer automatically extracts the "Authorization: Bearer <token>" header
 security_scheme = HTTPBearer()
@@ -10,11 +10,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
     token = credentials.credentials
     try:
         # Decode the JWT using the secret key and HS256 algorithm
-        payload = jwt.decode(
-            token,
-            settings.JWT_ACCESS_SECRET,
-            algorithms=["HS256"]
-        )
+        payload = verify_access_token(token)
         
         user_id = payload.get("sub")
         email = payload.get("email")

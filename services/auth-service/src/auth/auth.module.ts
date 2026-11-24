@@ -1,3 +1,4 @@
+import { JwksController } from './jwks.controller';
 import { Module, forwardRef } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
@@ -20,7 +21,7 @@ import { OtpModule } from '../otp/otp.module';
     JwtModule.register({}),
     forwardRef(() => OtpModule),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, JwksController],
   providers: [
     AuthService,
     JwtStrategy,

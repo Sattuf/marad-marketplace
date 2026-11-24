@@ -69,3 +69,11 @@
 - الفلتر المشترك (9 نسخ متطابقة): `{statusCode, error, message, requestId, timestamp, path}`؛ أخطاء 500 لا تكشف التفاصيل وتُسجَّل مع requestId.
 - FastAPI: `errors.py` (نسختان متطابقتان، أُضيفتا لـ `check-shared-copies.mjs`) بنفس الشكل؛ أخطاء التحقق 400 بدل 422.
 - **بوابة الجودة:** gateway 46 (+6)، كل خدمات Node خضراء، fraud 14، personalization 8؛ 18 حاوية healthy؛ e2e **52/52**؛ تحقق يدوي: الخطأ نفسه الشكل من Nest ومن FastAPI مع `requestId` المُمرَّر.
+
+### T4.2 — مصادقة مركزية غير متماثلة (S11) ✅
+- auth-service وحده يملك `JWT_PRIVATE_KEY_B64` ويوقّع RS256 بـ `kid` (بصمة RFC 7638) و`iss=marad-auth` و`aud=marad-api`؛ الخدمات العشر الأخرى لا تملك إلا `JWT_PUBLIC_JWKS`. `GET /.well-known/jwks.json` للمستهلكين الخارجيين.
+- `security.ts` المشترك (8 نسخ) + 4 استراتيجيات Passport + `jwt_keys.py` المشترك (fraud، personalization) — كلها RS256 فقط مع iss/aud، والمفاتيح تُحمَّل عند الإقلاع.
+- رموز التحديث: HS256 مثبتة + جمهور `marad-refresh` (لا يمكن تبادل النوعين).
+- `scripts/gen-jwt-keys.mjs` + `gen-env.sh` يولّد زوج المفاتيح، ويضيفه لـ `.env` موجود دون مسح قيمه.
+- مراجعة مستقلة قبل التنفيذ غيّرت التصميم في 6 نقاط (ADR-007)، وكشفت S16 الجديد.
+- **بوابة الجودة:** كل خدمات Node خضراء (transactions 36 مع 4 اختبارات سلبية جديدة)؛ fraud 15 (+2)؛ personalization 8؛ 18 حاوية healthy؛ e2e **52/52**؛ تحقق حي: رمز HS256 مزوّر بدور admin → 401 في moderation/fraud/auth، والرمز الحقيقي → 200.
