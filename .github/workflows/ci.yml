@@ -238,3 +238,32 @@ jobs:
       - name: Tests
         run: flutter test
         working-directory: apps/mobile
+
+  # ─────────────────────────────────────────────
+  # Full stack in Docker: build every image, start everything, seed demo data and play
+  # the end-to-end journey through the gateway (52 checks).
+  # ─────────────────────────────────────────────
+  e2e:
+    name: "E2E — full stack in Docker"
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Secrets and key pair for this run
+        run: sh scripts/gen-env.sh
+      - name: Build and start (waits for every health check)
+        run: docker compose -f infra/docker-compose.yml up -d --build --wait --wait-timeout 600
+      - run: npm ci
+      - name: Demo data
+        run: node scripts/seed-demo.mjs
+      - name: End-to-end journey
+        run: node scripts/e2e-smoke.mjs
+      - name: Service logs on failure
+        if: failure()
+        run: docker compose -f infra/docker-compose.yml logs --tail=200
+      - if: always()
+        run: docker compose -f infra/docker-compose.yml down -v

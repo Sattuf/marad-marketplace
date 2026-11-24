@@ -66,6 +66,12 @@
 | API9 Improper Inventory | ✅ فهرس OpenAPI موحد لكل الخدمات العشر في `/api/docs` (معطّل في الإنتاج)، والمسارات الداخلية المحجوبة لا تُعلَن |
 | API10 Unsafe Consumption | ✅ webhooks Didit/Stripe بتوقيع HMAC، والتحقق من `aud` لرموز Google/Facebook |
 
-## 4. سجل الإصلاح
+## 4. فحص Trivy (بعد الإصلاحات)
+
+`trivy fs --scanners vuln,misconfig,secret --severity HIGH,CRITICAL` على الشجرة النشطة: **0 نتائج**.
+الإخفاقات الوحيدة كانت في `archive/dockerfiles/*` (الأصلية: `AVD-DS-0002` تشغيل كـ root). الفحص نفسه مفروض في CI
+(`.github/workflows/security.yml`) مع CodeQL وgitleaks و`npm audit`، وDependabot.
+
+## 5. سجل الإصلاح
 
 يُحدَّث مع كل مهمة أمنية. التفاصيل في [ROADMAP.md](ROADMAP.md) و[PROGRESS_LOG.md](PROGRESS_LOG.md).
