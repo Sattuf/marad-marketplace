@@ -54,6 +54,8 @@ x-app-env: &app-env
   FRAUD_SERVICE_URL: http://fraud-service:8001
   PERSONALIZATION_SERVICE_URL: http://personalization-service:8002
   ELASTICSEARCH_NODE: http://elasticsearch:9200
+  # Distributed tracing (OpenTelemetry → Jaeger). Remove to turn tracing off.
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
 
 x-depends-core: &depends-core
   migrate:
@@ -171,6 +173,7 @@ services:
     environment:
       <<: *app-env
       PORT: "3000"
+      OTEL_SERVICE_NAME: api-gateway
       # Bearer token Prometheus uses to scrape the gateway's public /metrics.
       METRICS_TOKEN: ${METRICS_TOKEN:?set METRICS_TOKEN in infra/.env}
     ports:
@@ -190,6 +193,7 @@ services:
     environment:
       <<: *app-env
       PORT: "3001"
+      OTEL_SERVICE_NAME: auth-service
       JWT_PRIVATE_KEY_B64: ${JWT_PRIVATE_KEY_B64:?run make env to generate the access-token key pair}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?set JWT_REFRESH_SECRET in infra/.env}
       # Development only: OTP codes are logged instead of sent by SMS. Refused in production.
@@ -207,6 +211,7 @@ services:
     environment:
       <<: *app-env
       PORT: "3002"
+      OTEL_SERVICE_NAME: listings-service
       S3_BUCKET: marad-listings-images
       S3_REGION: me-south-1
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
@@ -226,6 +231,7 @@ services:
     environment:
       <<: *app-env
       PORT: "3003"
+      OTEL_SERVICE_NAME: search-service
     depends_on:
       <<: *depends-core
       elasticsearch:
@@ -241,6 +247,7 @@ services:
     environment:
       <<: *app-env
       PORT: "3004"
+      OTEL_SERVICE_NAME: messaging-service
     ports:
       # Socket.IO endpoint used directly by the web and mobile apps.
       - "${DEVICE_BIND:-127.0.0.1}:3004:3004"
@@ -258,6 +265,7 @@ services:
     environment:
       <<: *app-env
       PORT: "3005"
+      OTEL_SERVICE_NAME: transactions-service
     depends_on: *depends-core
 
   identity-service:
@@ -270,6 +278,7 @@ services:
     environment:
       <<: *app-env
       PORT: "3006"
+      OTEL_SERVICE_NAME: identity-service
       DIDIT_API_KEY: ${DIDIT_API_KEY:-}
       DIDIT_WEBHOOK_SECRET: ${DIDIT_WEBHOOK_SECRET:?set DIDIT_WEBHOOK_SECRET in infra/.env}
       DIDIT_API_URL: https://api.didit.me
@@ -291,6 +300,7 @@ services:
     environment:
       <<: *app-env
       PORT: "3007"
+      OTEL_SERVICE_NAME: users-service
     volumes:
       - users_media:/app/tmp
     depends_on: *depends-core
@@ -303,6 +313,7 @@ services:
     environment:
       <<: *app-env
       PORT: "3008"
+      OTEL_SERVICE_NAME: moderation-service
     depends_on: *depends-core
 
   # ==========================================================================
@@ -317,6 +328,7 @@ services:
     environment:
       <<: *app-env
       PORT: "8001"
+      OTEL_SERVICE_NAME: fraud-service
     depends_on: *depends-core
 
   personalization-service:
@@ -327,6 +339,7 @@ services:
     environment:
       <<: *app-env
       PORT: "8002"
+      OTEL_SERVICE_NAME: personalization-service
     depends_on:
       <<: *depends-core
       elasticsearch:
@@ -356,6 +369,14 @@ services:
   # ==========================================================================
   # Monitoring
   # ==========================================================================
+
+  jaeger:
+    # Trace UI on http://localhost:16686; receives OTLP over HTTP on 4318 (internal only).
+    image: jaegertracing/all-in-one:1.62.0
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:16686:16686"
+    networks: [marad-network]
 
   prometheus:
     image: prom/prometheus:v2.55.1

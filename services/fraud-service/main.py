@@ -9,9 +9,12 @@ from errors import install_error_handlers
 
 import os
 import sentry_sdk
+from observability import setup_logging, setup_tracing
 from prometheus_fastapi_instrumentator import Instrumentator
 
-sentry_sdk.init(dsn=os.getenv("SENTRY_DSN"), traces_sample_rate=0.1)
+setup_logging()
+if os.getenv("SENTRY_DSN"):
+    sentry_sdk.init(dsn=os.getenv("SENTRY_DSN"), traces_sample_rate=0.1)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -24,6 +27,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Fraud Service", version="1.0.0", lifespan=lifespan)
 
 install_error_handlers(app)
+setup_tracing(app, "fraud-service")
 Instrumentator().instrument(app).expose(app)
 
 app.include_router(device.router)

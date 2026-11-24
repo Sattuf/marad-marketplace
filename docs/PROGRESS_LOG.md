@@ -97,3 +97,10 @@
 - `dependabot.yml`: npm (4 lockfiles)، pip (2)، Docker، GitHub Actions — مجمّعة.
 - **Trivy محلياً** (أول فحص كامل؛ الصورة كانت محجوبة بحد Docker Hub): الشجرة النشطة **0** HIGH/CRITICAL (ثغرات، إعدادات Dockerfile/compose، أسرار)؛ الإخفاقات الوحيدة في `archive/dockerfiles` (الأصلية بلا `USER`) — وهو دليل على ما أصلحه T2.1.
 - تعذّر تشغيل workflows فعلياً هنا (لا GitHub runner)؛ تحققتُ من صحة YAML وشغّلت أمر Trivy نفسه محلياً بنجاح.
+
+### T6.1–T6.3 — المراقبة ✅
+- **سجلات JSON:** `nestjs-pino` في الخدمات التسع (`observability/logging.module.ts` مشترك)؛ سطر لكل طلب بـ method/url/status/duration و`requestId` و`trace_id`، مع حجب `authorization`/`cookie`/`x-internal-secret`. Python: `JsonFormatter` بـ trace_id.
+- **تتبّع موزع:** `observability/tracing.ts` (OpenTelemetry NodeSDK + auto-instrumentations: http/express/nest/pg/ioredis/socket.io) و`observability.py` (FastAPI/asyncpg/httpx) → Jaeger (`:16686`). Sentry صار اختيارياً ولا يتعارض مع OTel.
+- **Grafana:** لوحة "Ma'rad — Services" (حالة UP، CPU، ذاكرة، event-loop lag، heap، معدل/زمن طلبات Python) + مصدر بيانات Jaeger.
+- 5 ملفات مشتركة جديدة أُضيفت لـ `check-shared-copies.mjs` (12 مجموعة، كلها متطابقة).
+- **بوابة الجودة:** كل خدمات Node: tsc + اختبارات + lint ✅؛ Python 15/8 ✅؛ 19 حاوية healthy؛ e2e **52/52**؛ Jaeger يرى **11/11** خدمة، وطلب واحد يعطي trace عبر 5 خدمات (93 span)؛ سجل listings يحمل `requestId` المُرسل من العميل و`trace_id`.

@@ -1,3 +1,4 @@
+import { LoggingModule } from './observability/logging.module';
 import { DocsModule } from './docs/docs.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
@@ -15,6 +16,7 @@ const isAuthRoute = (path: string) => path.startsWith('/api/v1/auth');
 
 @Module({
   imports: [
+    LoggingModule,
     // Aggregated API docs (development only, like every service's Swagger UI).
     ...(process.env.NODE_ENV !== 'production' ? [DocsModule] : []),
     PrometheusModule.register({ controller: MetricsController }),

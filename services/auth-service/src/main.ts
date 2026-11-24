@@ -1,4 +1,8 @@
+// Must run before anything it instruments.
+import './observability/tracing';
 import { NestFactory } from '@nestjs/core';
+import { Logger as PinoLogger } from 'nestjs-pino';
+import { tracingEnabled } from './observability/tracing';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe, Logger } from '@nestjs/common';
@@ -10,15 +14,16 @@ import { assertRequiredSecrets, loadPublicKeys, corsOrigins, isProduction } from
 async function bootstrap() {
   assertRequiredSecrets('JWT_REFRESH_SECRET', 'INTERNAL_SECRET');
   loadPublicKeys(); // fails at boot on a missing or malformed JWT_PUBLIC_JWKS
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  app.useLogger(app.get(PinoLogger));
   // Only reachable through the gateway, which sets X-Forwarded-For: trust that one hop
   // (TRUST_PROXY_HOPS=1 in docker-compose) so lockouts are keyed by the real client IP.
   app.getHttpAdapter().getInstance().set('trust proxy', parseInt(process.env.TRUST_PROXY_HOPS || '0', 10));
   
-  Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    tracesSampleRate: 0.1,
-  });
+  // Error reporting only when configured; OpenTelemetry owns tracing (tracing.ts).
+  if (process.env.SENTRY_DSN) {
+    Sentry.init({ dsn: process.env.SENTRY_DSN, tracesSampleRate: 0.1, skipOpenTelemetrySetup: tracingEnabled });
+  }
   app.useGlobalFilters(new SentryExceptionFilter());
 
   // Enable CORS

@@ -16,6 +16,7 @@ up: env ## Build and start the whole stack, wait until every service is healthy
 	@echo "  API gateway  http://localhost:3000/api/v1   (Swagger: http://localhost:3000/api/docs)"
 	@echo "  Grafana      http://localhost:3200          (admin / GRAFANA_ADMIN_PASSWORD in infra/.env)"
 	@echo "  Prometheus   http://localhost:9090"
+	@echo "  Jaeger       http://localhost:16686"
 
 seed: ## Load demo accounts and listings (idempotent)
 	node scripts/seed-demo.mjs
