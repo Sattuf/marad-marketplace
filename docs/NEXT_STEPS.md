@@ -16,7 +16,9 @@
 | U7 | التسجيل في Amazon Associates لدولة البداية + برنامج Noon أو شبكة تركية | القبول يأخذ أسابيع (L5 المرحلة 0) | يحتاج هويتك وبياناتك الضريبية — لا أستطيع فعله نيابة عنك |
 | U8 | (لاحقاً، L3.2) اختيار مزود VPS والدفع | تشغيل الخدمات الخلفية | سأقترح مواصفات محددة عند الوصول |
 
-## ▶️ التالي: L0.2 — CI على فروع `launch/**`
+## ✅ قيد التحقق في CI: L0.2 (`launch/plan`) و L1.5 (`launch/L1.5-image-rotation`)
+
+## (للمرجع) L0.2 — CI على فروع `launch/**`
 
 - **ما:** إضافة `launch/**` إلى `on.push.branches` في `.github/workflows/ci.yml` و`security.yml`.
 - **لماذا:** لا أستطيع فتح PR (لا رمز GitHub API)، فبدون هذا لن يعمل CI على فروعي.
@@ -24,13 +26,6 @@
 - **أمن:** لا تغيير في الصلاحيات؛ `permissions:` في الـ workflow تبقى أقل ما يمكن. انتبه: CI على push لا يكشف أسراراً لـ forks.
 
 ## بعده بالترتيب
-
-### L1.5 — تدوير صور الهاتف (سريع، أثر مرئي كبير)
-- `services/listings-service/src/storage/storage.service.ts`: `sharp(file.buffer).rotate()` قبل `resize` في الصورتين.
-- نفس الشيء في `messaging-service/src/messaging/storage.service.ts`.
-- **اختبار:** صورة JPEG بـ EXIF orientation=6 (تُولَّد بـ sharp `.withMetadata({ orientation: 6 })`) → الناتج أبعاده مقلوبة والـ metadata بلا orientation.
-- **أمن:** تأكيد أن `sharp` يحذف EXIF افتراضياً (GPS) — اختبار يثبت غياب `exif` في الناتج.
-- **تسويق:** صور مقلوبة = إعلانات تبدو رديئة = ثقة أقل.
 
 ### L1.6 — صور المحادثات
 - استبدال `Date.now()-Math.random` بـ `randomUUID()`.
@@ -52,3 +47,8 @@
 ### L1.7 — حماية OTP
 - حد لكل رقم (3/ساعة)، لكل IP (10/ساعة)، قائمة دول مسموحة من `OTP_ALLOWED_COUNTRY_CODES`، رفض الأرقام المميزة.
 - مقياس `otp_sent_total{country}` وتنبيه عند قفزة.
+
+### صيانة صغيرة (تُدمج مع أقرب مهمة تلمس الملف)
+- `search-service/src/ranking/ranking.service.spec.ts:38`: `null` → `undefined` (خطأ نوع لا يراه CI لأن tsconfig.build يستبعد الاختبارات). الأفضل: خطوة CI تشغّل `tsc -p tsconfig.json` أيضاً لتشمل الاختبارات.
+- `transactions-service`: الاختبارات لا تنتهي بدون `--forceExit` (اتصال Redis/DB مفتوح في الاختبارات) → إغلاقه في `afterAll`.
+
