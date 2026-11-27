@@ -36,4 +36,22 @@ describe('StorageService (local storage, real sharp)', () => {
     const meta = await sharp(path.join(dir, 'tmp', 'listings', path.basename(thumbnailUrl))).metadata();
     expect(meta.format).toBe('jpeg');
   });
+
+  it('applies EXIF orientation from phone photos and strips EXIF/GPS metadata', async () => {
+    const sharp = require('sharp');
+    // A 64x48 landscape image tagged "rotate 90° clockwise" (orientation 6), as phone cameras write it.
+    const tagged = await sharp({ create: { width: 64, height: 48, channels: 3, background: '#0d9488' } })
+      .jpeg()
+      .withMetadata({ orientation: 6, exif: { IFD0: { Make: 'TestPhone' } } })
+      .toBuffer();
+    expect((await sharp(tagged).metadata()).orientation).toBe(6);
+
+    const { imageUrl } = await new StorageService().uploadListingImage({ buffer: tagged } as Express.Multer.File);
+
+    const meta = await sharp(path.join(dir, 'tmp', 'listings', path.basename(imageUrl))).metadata();
+    expect(meta.width).toBe(48);
+    expect(meta.height).toBe(64);
+    expect(meta.orientation).toBeUndefined();
+    expect(meta.exif).toBeUndefined();
+  });
 });

@@ -33,7 +33,8 @@ export class StorageService {
     const filepath = path.join(this.uploadDir, filename);
 
     await sharp(file.buffer)
-      .resize(800)
+      .rotate()
+      .resize({ width: 800, withoutEnlargement: true })
       .jpeg({ quality: 80 })
       .toFile(filepath);
 

@@ -44,13 +44,17 @@ export class StorageService {
     const fileId = randomUUID();
     
     // Process main image: 1200x1200, 85%
+    // rotate() applies the EXIF orientation from phone cameras; sharp drops all other
+    // metadata (including GPS) because withMetadata() is never called.
     const imageBuffer = await sharp(file.buffer)
-      .resize(1200, 1200, { fit: 'inside' })
+      .rotate()
+      .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
       .jpeg({ quality: 85 })
       .toBuffer();
       
     // Process thumbnail: 300x300, 70%
     const thumbBuffer = await sharp(file.buffer)
+      .rotate()
       .resize(300, 300, { fit: 'cover' })
       .jpeg({ quality: 70 })
       .toBuffer();
