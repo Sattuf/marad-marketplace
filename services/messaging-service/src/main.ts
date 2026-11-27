@@ -5,8 +5,7 @@ import { Logger as PinoLogger } from 'nestjs-pino';
 import { tracingEnabled } from './observability/tracing';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
-import * as express from 'express';
-import { StorageService } from './messaging/storage.service';
+import { serveMessageImage } from './messaging/storage.service';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import * as Sentry from '@sentry/node';
@@ -35,10 +34,8 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.enableCors({ origin: corsOrigins() });
   // Chat images stored locally: see storage.service localMediaUrl.
-  app.use(
-    '/media/messages',
-    express.static(StorageService.uploadDir, { index: false, fallthrough: false, maxAge: '7d', immutable: true }),
-  );
+  // Signed, expiring URLs only (storage.service signMessageImageUrl): chat images are private.
+  app.use('/media/messages', serveMessageImage);
 
   const config = new DocumentBuilder()
     .setTitle('Messaging Service')

@@ -235,6 +235,11 @@ check((await reply).content === 'نعم متوفر 👍', 'buyer receives the re
 const imageMsg = await call('POST', `/conversations/${conv.data.id}/messages/image`, { token: buyer.token, form: imageForm('image') });
 check(imageMsg.status === 201 && imageMsg.data.type === 'image', 'buyer sends an image in the chat', imageMsg.data);
 await fetchImage(imageMsg.data.imageUrl, 'chat image');
+{
+  // Chat images are private: the same file without its signature must be refused.
+  const unsigned = await fetch(imageMsg.data.imageUrl.split('?')[0]);
+  check(unsigned.status === 403, 'chat image without a signature is refused (403)', unsigned.status);
+}
 
 const deletedEvent = nextEvent(sellerSocket, 'message_deleted');
 const del = await call('DELETE', `/conversations/${conv.data.id}/messages/${imageMsg.data.id}`, { token: buyer.token });

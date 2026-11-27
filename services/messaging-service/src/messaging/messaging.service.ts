@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
 import { MAX_MESSAGE_LENGTH } from '../entities/message.entity';
-import { StorageService } from './storage.service';
+import { StorageService, signMessageImageUrl } from './storage.service';
 
 const MAX_PAGE_SIZE = 100;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -78,7 +78,7 @@ function toMessage(row: any, isRead: boolean): MessageDto {
     senderId: row.sender_id,
     content: row.content,
     type: row.image_url ? 'image' : 'text',
-    imageUrl: row.image_url ?? null,
+    imageUrl: signMessageImageUrl(row.image_url),
     isRead,
     createdAt: iso(row.created_at)!,
   };
