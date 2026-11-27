@@ -1,0 +1,115 @@
+{
+  "lang": "en",
+  "dir": "ltr",
+  "updated": "2026-11-27",
+  "labels": { "updated": "Last updated", "languages": "Languages", "draft": "This page is an accurate technical draft of what the app does and will be reviewed by a lawyer before public launch." },
+  "contactFallback": "in the app: Settings → Delete account, or the Account deletion page on our website",
+  "docs": {
+    "privacy": {
+      "title": "Privacy Policy",
+      "intro": "This policy explains what data {{entity}} collects when you use the Ma'rad app and website, why, for how long, who can see it, and how to exercise your rights.",
+      "sections": [
+        { "h": "What we collect", "items": [
+          "Account data: your name, phone number and/or email, password (stored only as a bcrypt hash that nobody can read), profile photo and bio if you add them, city, and preferred language.",
+          "Location: only if you allow it, an approximate location to show listings near you.",
+          "Listings: title, description, price, category and photos. We remove all photo metadata (EXIF), including where the photo was taken, before storing it.",
+          "Chats: the messages and photos you exchange with other users. Chat photos open only through short-lived signed links given to the two people in the conversation.",
+          "Deals, reviews, favorites and reports you create.",
+          "Security data: IP address, browser or device type, and a hashed device fingerprint, to detect fraud and fake accounts.",
+          "Usage data: listings you view or save and your searches, to improve ranking and suggestions. Deleted automatically after 6 months.",
+          "Identity verification (optional): if you ask for a \"verified\" badge, your document is processed by our verification provider Didit; we keep the result and encrypted copies under keys held in a secure key service.",
+          "Your device's notification token, to send chat and deal notifications."
+        ]},
+        { "h": "Why we use it", "items": [
+          "To run your account, listings, chats and deals (performing the service you asked for).",
+          "To protect users: fraud detection, spam prevention and handling reports (legitimate interest and legal obligation).",
+          "To improve search results and suggestions (legitimate interest; you can object).",
+          "To send the verification codes and notifications you asked for."
+        ]},
+        { "h": "What we never do", "items": [
+          "We do not sell or rent your data to anyone.",
+          "We do not show your phone number to others unless you choose to; people contact you through in-app chat.",
+          "We do not collect your card details: payments (only for promoting listings) are made directly with the payment provider."
+        ]},
+        { "h": "Who processes data on our behalf", "items": [
+          "Cloud providers for servers, the database and photo storage.",
+          "Twilio, to send SMS verification codes.",
+          "Google Firebase, to send notifications.",
+          "Google, if you choose to sign in with Google.",
+          "Didit, if you request identity verification.",
+          "Stripe, if you pay to promote a listing.",
+          "A technical error-tracking tool (without your message contents), when enabled."
+        ], "note": "They process data only on our instructions and for the service. This may happen outside your country; we rely on the transfer safeguards your country's law requires."},
+        { "h": "Products from other stores and platforms", "items": [
+          "We may show new products from local stores or other platforms. When you tap one, we record the click (no personal data is sent to the platform) and send you to its site, where its own privacy policy applies.",
+          "We may earn a commission when you buy through some of these links, at no extra cost to you."
+        ]},
+        { "h": "How long we keep data", "items": [
+          "Account data: as long as the account exists.",
+          "When you delete your account: your profile and listings are hidden immediately and the data is permanently deleted after 30 days (a window to recover an account deleted by mistake), except what the law requires us to keep or what an open fraud report needs.",
+          "Usage data: 6 months. Security logs: up to 12 months."
+        ]},
+        { "h": "Your rights", "items": [
+          "See and correct your data from your profile.",
+          "Delete your account and data at any time (Account deletion page).",
+          "Object to the use of usage data for suggestions, and withdraw consent for notifications or location in your device settings.",
+          "Complain to your data protection authority, for example: KVKK (Turkey), SDAIA (Saudi Arabia, PDPL), Egypt's Personal Data Protection Center, or the data protection authorities of EU member states (GDPR)."
+        ]},
+        { "h": "Children", "items": [ "The app is not intended for people under 18, and we do not knowingly accept their accounts." ] },
+        { "h": "Contact", "items": [ "For any question or request about your data: {{contact}}." ] }
+      ]
+    },
+    "terms": {
+      "title": "Terms of Use",
+      "intro": "By using Ma'rad you agree to these terms. The platform is operated by {{entity}}.",
+      "sections": [
+        { "h": "What Ma'rad is", "items": [
+          "A classifieds platform where buyers and sellers meet. We are not a party to the sale: we do not own the goods, receive the money, or guarantee the item's condition.",
+          "Payment happens between the two parties when they meet. Never send money in advance to someone you have not met."
+        ]},
+        { "h": "Your account", "items": [
+          "You must be 18 or older and give accurate information.",
+          "You are responsible for everything posted from your account. Never share a verification code with anyone; we will never ask for it."
+        ]},
+        { "h": "Not allowed", "items": [
+          "Selling anything your country's law forbids: weapons and ammunition, drugs and prescription medicine, protected animals, counterfeit or stolen goods, official documents, and any adult content.",
+          "Fraud, asking for advance payment, misleading or duplicate listings, and suspicious external links.",
+          "Harassment, insults or discrimination in chats.",
+          "Automated scraping of the platform or attempts to break into it."
+        ]},
+        { "h": "Content", "items": [
+          "You keep ownership of what you post and give us a licence to display it and resize its photos on the platform while it is published.",
+          "We may hide or remove any listing or account that breaks these terms and suspend repeat offenders. You can appeal by contacting us."
+        ]},
+        { "h": "Reports and safety", "items": [
+          "Report any suspicious listing or user with the Report button. We review reports and act on them.",
+          "Meet in a public place and inspect the item before paying."
+        ]},
+        { "h": "Paid promotion", "items": [ "Promoting a listing is an optional prepaid service. It starts on payment and is refunded only if we fail to deliver it because of a fault on our side." ] },
+        { "h": "Liability", "items": [
+          "We provide the platform \"as is\". To the extent the law allows, we are not liable for deals between users or losses arising from them.",
+          "Nothing here removes the rights your country's consumer protection law gives you."
+        ]},
+        { "h": "Changes", "items": [ "We may update these terms; we will tell you in the app at least 14 days before any material change takes effect." ] }
+      ]
+    },
+    "account-deletion": {
+      "title": "Delete your account",
+      "intro": "You can delete your Ma'rad account and all its data at any time, from the app or the website.",
+      "sections": [
+        { "h": "From the app or website", "items": [
+          "Sign in, then open Settings → Delete account.",
+          "Confirm it is you with your password or a code sent to your phone.",
+          "Your account is closed immediately and you are signed out on every device."
+        ]},
+        { "h": "If you can no longer sign in", "items": [ "Request deletion {{contact}}, from the phone number or email registered on the account. We will verify you own the account before deleting it." ] },
+        { "h": "What is deleted, and when", "items": [
+          "Immediately: your profile and listings disappear from search, and your name shows as \"Deleted user\" in past chats.",
+          "After 30 days: your profile, listings, photos, favorites and usage data are permanently deleted. Until then you can undo by signing in.",
+          "We keep only what the law requires (such as payment records) or what an open fraud report needs, and only for as long as needed.",
+          "Messages you sent stay visible to the people who received them, without your name, as in any chat app."
+        ]}
+      ]
+    }
+  }
+}

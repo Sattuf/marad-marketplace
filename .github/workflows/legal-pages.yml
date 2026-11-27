@@ -1,0 +1,48 @@
+# Publishes the legal pages (privacy, terms, account deletion) to GitHub Pages, from the
+# same JSON the web app renders. Stable URLs for the Google Play / App Store listings.
+# One-time setup: Settings → Pages → Source: "GitHub Actions".
+name: Legal pages
+
+on:
+  push:
+    branches: [main]
+    paths: ["apps/web/content/legal/**", "scripts/build-legal-pages.mjs", ".github/workflows/legal-pages.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: legal-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build static legal site
+        env:
+          # Repository variables (not secrets: they are published on the page).
+          LEGAL_ENTITY_NAME: ${{ vars.LEGAL_ENTITY_NAME }}
+          LEGAL_CONTACT_EMAIL: ${{ vars.LEGAL_CONTACT_EMAIL }}
+        run: node scripts/build-legal-pages.mjs dist/legal-site
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/legal-site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

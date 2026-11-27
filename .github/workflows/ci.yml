@@ -31,6 +31,8 @@ jobs:
         run: node scripts/check-shared-copies.mjs
       - name: Markets registry is valid and generated copies are in sync
         run: node packages/markets/build.mjs --check
+      - name: Legal pages export (GitHub Pages copy) builds
+        run: node scripts/build-legal-pages.mjs /tmp/legal-site
       - name: Helm chart lints and renders
         run: |
           docker run --rm -v "$PWD/infra/helm:/charts" alpine/helm:3.16.3 lint /charts/marad --strict

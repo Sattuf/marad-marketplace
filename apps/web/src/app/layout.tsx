@@ -5,6 +5,7 @@ import "@fontsource-variable/cairo";
 import "@fontsource-variable/inter";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
   title: "معرض الأشياء — سوق البيع والشراء",
@@ -31,6 +32,7 @@ export default function RootLayout({
         <FCMProvider />
         <Navbar />
         {children}
+        <Footer />
       </body>
     </html>
   );

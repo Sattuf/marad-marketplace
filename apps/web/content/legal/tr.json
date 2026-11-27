@@ -1,0 +1,115 @@
+{
+  "lang": "tr",
+  "dir": "ltr",
+  "updated": "2026-11-27",
+  "labels": { "updated": "Son güncelleme", "languages": "Diller", "draft": "Bu sayfa, uygulamanın ne yaptığını doğru anlatan teknik bir taslaktır ve genel lansmandan önce bir avukat tarafından incelenecektir." },
+  "contactFallback": "uygulamada: Ayarlar → Hesabı sil, ya da web sitemizdeki Hesap silme sayfası üzerinden",
+  "docs": {
+    "privacy": {
+      "title": "Gizlilik Politikası",
+      "intro": "Bu politika, Ma'rad uygulamasını ve web sitesini kullandığınızda {{entity}} tarafından hangi verilerin toplandığını, neden, ne kadar süreyle saklandığını, kimlerin görebildiğini ve haklarınızı nasıl kullanacağınızı açıklar.",
+      "sections": [
+        { "h": "Topladığımız veriler", "items": [
+          "Hesap verileri: adınız, telefon numaranız ve/veya e-postanız, şifreniz (yalnızca kimsenin okuyamadığı bir bcrypt özeti olarak saklanır), eklerseniz profil fotoğrafınız ve tanıtım yazınız, şehriniz ve tercih ettiğiniz dil.",
+          "Konum: yalnızca izin verirseniz, yakınınızdaki ilanları göstermek için yaklaşık konumunuz.",
+          "İlanlar: başlık, açıklama, fiyat, kategori ve fotoğraflar. Fotoğrafları kaydetmeden önce çekildiği yer dahil tüm meta verileri (EXIF) sileriz.",
+          "Sohbetler: diğer kullanıcılarla paylaştığınız mesajlar ve fotoğraflar. Sohbet fotoğrafları yalnızca sohbetteki iki kişiye verilen kısa süreli imzalı bağlantılarla açılır.",
+          "Oluşturduğunuz işlemler, değerlendirmeler, favoriler ve şikâyetler.",
+          "Güvenlik verileri: dolandırıcılığı ve sahte hesapları tespit etmek için IP adresi, tarayıcı veya cihaz türü ve özetlenmiş (hash) cihaz parmak izi.",
+          "Kullanım verileri: sıralamayı ve önerileri iyileştirmek için görüntülediğiniz veya kaydettiğiniz ilanlar ve aramalarınız. 6 ay sonra otomatik olarak silinir.",
+          "Kimlik doğrulama (isteğe bağlı): \"doğrulanmış\" rozeti isterseniz belgeniz doğrulama sağlayıcımız Didit tarafından işlenir; sonucu ve güvenli bir anahtar hizmetinde tutulan anahtarlarla şifrelenmiş kopyaları saklarız.",
+          "Sohbet ve işlem bildirimleri göndermek için cihazınızın bildirim belirteci."
+        ]},
+        { "h": "Verileri neden kullanıyoruz", "items": [
+          "Hesabınızı, ilanlarınızı, sohbetlerinizi ve işlemlerinizi yürütmek (talep ettiğiniz hizmetin ifası).",
+          "Kullanıcıları korumak: dolandırıcılık tespiti, istenmeyen mesajların önlenmesi ve şikâyetlerin ele alınması (meşru menfaat ve hukuki yükümlülük).",
+          "Arama sonuçlarını ve önerileri iyileştirmek (meşru menfaat; itiraz edebilirsiniz).",
+          "Talep ettiğiniz doğrulama kodlarını ve bildirimleri göndermek."
+        ]},
+        { "h": "Asla yapmadıklarımız", "items": [
+          "Verilerinizi kimseye satmayız veya kiralamayız.",
+          "Siz seçmedikçe telefon numaranızı başkalarına göstermeyiz; sizinle uygulama içi sohbetten iletişim kurulur.",
+          "Kart bilgilerinizi toplamayız: ödemeler (yalnızca ilan öne çıkarma için) doğrudan ödeme sağlayıcısında yapılır."
+        ]},
+        { "h": "Verileri bizim adımıza işleyenler", "items": [
+          "Sunucular, veritabanı ve fotoğraf depolama için bulut sağlayıcıları.",
+          "SMS doğrulama kodları için Twilio.",
+          "Bildirimler için Google Firebase.",
+          "Google ile giriş yapmayı seçerseniz Google.",
+          "Kimlik doğrulama isterseniz Didit.",
+          "Bir ilanı öne çıkarmak için ödeme yaparsanız Stripe.",
+          "Etkin olduğunda teknik hata izleme aracı (mesaj içerikleriniz olmadan)."
+        ], "note": "Bu sağlayıcılar verileri yalnızca talimatlarımızla ve hizmet için işler. Bu işlem ülkeniz dışında gerçekleşebilir; ülkenizin yasasının aktarım için öngördüğü güvencelere dayanırız (Türkiye için KVKK md. 9)."},
+        { "h": "Diğer mağaza ve platformlardaki ürünler", "items": [
+          "Yerel mağazalardan veya diğer platformlardan yeni ürünler gösterebiliriz. Birine dokunduğunuzda tıklamayı kaydederiz (platforma kişisel veri gönderilmez) ve sizi o platformun sitesine yönlendiririz; orada onun gizlilik politikası geçerlidir.",
+          "Bu bağlantıların bazıları üzerinden yapılan alışverişlerden, size ek maliyet olmadan komisyon kazanabiliriz."
+        ]},
+        { "h": "Saklama süreleri", "items": [
+          "Hesap verileri: hesap var olduğu sürece.",
+          "Hesabınızı sildiğinizde: profiliniz ve ilanlarınız hemen gizlenir ve veriler 30 gün sonra kalıcı olarak silinir (yanlışlıkla silinen hesabı geri almak için), yasanın saklamamızı gerektirdikleri veya açık bir dolandırıcılık şikâyetinin gerektirdikleri hariç.",
+          "Kullanım verileri: 6 ay. Güvenlik kayıtları: en fazla 12 ay."
+        ]},
+        { "h": "Haklarınız", "items": [
+          "Profilinizden verilerinizi görüntüleyebilir ve düzeltebilirsiniz.",
+          "Hesabınızı ve verilerinizi istediğiniz zaman silebilirsiniz (Hesap silme sayfası).",
+          "Kullanım verilerinin öneriler için kullanılmasına itiraz edebilir, bildirimler veya konum için verdiğiniz izni cihaz ayarlarından geri alabilirsiniz.",
+          "Kişisel Verileri Koruma Kurumu'na (KVKK) veya ülkenizin veri koruma otoritesine şikâyette bulunabilirsiniz."
+        ]},
+        { "h": "Çocuklar", "items": [ "Uygulama 18 yaşından küçükler için tasarlanmamıştır ve bilerek onların hesaplarını kabul etmeyiz." ] },
+        { "h": "İletişim", "items": [ "Verilerinizle ilgili her soru veya talep için: {{contact}}." ] }
+      ]
+    },
+    "terms": {
+      "title": "Kullanım Koşulları",
+      "intro": "Ma'rad'ı kullanarak bu koşulları kabul etmiş olursunuz. Platform {{entity}} tarafından işletilmektedir.",
+      "sections": [
+        { "h": "Ma'rad nedir", "items": [
+          "Alıcıların ve satıcıların buluştuğu bir ilan platformudur. Satışın tarafı değiliz: ürünlerin sahibi değiliz, parayı almayız ve ürünün durumunu garanti etmeyiz.",
+          "Ödeme, taraflar buluştuğunda aralarında yapılır. Hiç görmediğiniz birine asla önceden para göndermeyin."
+        ]},
+        { "h": "Hesabınız", "items": [
+          "18 yaşında veya daha büyük olmalı ve doğru bilgi vermelisiniz.",
+          "Hesabınızdan yayınlanan her şeyden siz sorumlusunuz. Doğrulama kodunu kimseyle paylaşmayın; biz asla istemeyiz."
+        ]},
+        { "h": "Yasak olanlar", "items": [
+          "Ülkenizin yasalarının yasakladığı her şeyin satışı: silah ve mühimmat, uyuşturucu ve reçeteli ilaçlar, koruma altındaki hayvanlar, sahte veya çalıntı mallar, resmi belgeler ve her türlü yetişkin içeriği.",
+          "Dolandırıcılık, ön ödeme talep etme, yanıltıcı veya tekrarlanan ilanlar ve şüpheli dış bağlantılar.",
+          "Sohbetlerde taciz, hakaret veya ayrımcılık.",
+          "Platformdan otomatik veri çekme veya platforma sızma girişimleri."
+        ]},
+        { "h": "İçerik", "items": [
+          "Yayınladıklarınızın sahibi olmaya devam edersiniz ve yayında kaldığı sürece platformda gösterilmesi ve fotoğraflarının yeniden boyutlandırılması için bize lisans verirsiniz.",
+          "Bu koşulları ihlal eden ilanları veya hesapları gizleyebilir ya da kaldırabilir, tekrar eden ihlalcileri askıya alabiliriz. Bizimle iletişime geçerek itiraz edebilirsiniz."
+        ]},
+        { "h": "Şikâyetler ve güvenlik", "items": [
+          "Şüpheli bir ilanı veya kullanıcıyı Şikâyet Et düğmesiyle bildirin. Şikâyetleri inceler ve gereğini yaparız.",
+          "Halka açık bir yerde buluşun ve ödeme yapmadan önce ürünü kontrol edin."
+        ]},
+        { "h": "Ücretli öne çıkarma", "items": [ "İlan öne çıkarma isteğe bağlı, peşin ödenen bir hizmettir. Ödemeyle başlar ve yalnızca bizden kaynaklanan bir hata nedeniyle sunulamazsa iade edilir." ] },
+        { "h": "Sorumluluk", "items": [
+          "Platformu \"olduğu gibi\" sunuyoruz. Yasanın izin verdiği ölçüde, kullanıcılar arasındaki işlemlerden veya bunlardan doğan kayıplardan sorumlu değiliz.",
+          "Buradaki hiçbir hüküm, ülkenizin tüketiciyi koruma mevzuatının size tanıdığı hakları ortadan kaldırmaz."
+        ]},
+        { "h": "Değişiklikler", "items": [ "Bu koşulları güncelleyebiliriz; önemli bir değişiklik yürürlüğe girmeden en az 14 gün önce uygulamada bildiririz." ] }
+      ]
+    },
+    "account-deletion": {
+      "title": "Hesabınızı silin",
+      "intro": "Ma'rad hesabınızı ve tüm verilerini istediğiniz zaman uygulamadan veya web sitesinden silebilirsiniz.",
+      "sections": [
+        { "h": "Uygulamadan veya web sitesinden", "items": [
+          "Giriş yapın, ardından Ayarlar → Hesabı sil bölümünü açın.",
+          "Şifrenizle veya telefonunuza gönderilen bir kodla kimliğinizi doğrulayın.",
+          "Hesabınız hemen kapatılır ve tüm cihazlarda oturumunuz sonlandırılır."
+        ]},
+        { "h": "Artık giriş yapamıyorsanız", "items": [ "Silme talebinizi {{contact}} iletin; talebi hesaba kayıtlı telefon numarası veya e-postadan gönderin. Silmeden önce hesabın sahibi olduğunuzu doğrularız." ] },
+        { "h": "Neler, ne zaman silinir", "items": [
+          "Hemen: profiliniz ve ilanlarınız aramadan kaybolur, eski sohbetlerde adınız \"Silinmiş kullanıcı\" olarak görünür.",
+          "30 gün sonra: profiliniz, ilanlarınız, fotoğraflarınız, favorileriniz ve kullanım verileriniz kalıcı olarak silinir. O zamana kadar giriş yaparak işlemi geri alabilirsiniz.",
+          "Yalnızca yasanın gerektirdiklerini (ödeme kayıtları gibi) veya açık bir dolandırıcılık şikâyetinin gerektirdiklerini, gerektiği süre boyunca saklarız.",
+          "Gönderdiğiniz mesajlar, her sohbet uygulamasında olduğu gibi, alan kişilere adınız olmadan görünmeye devam eder."
+        ]}
+      ]
+    }
+  }
+}

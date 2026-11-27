@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { ConsentNotice } from '@/components/legal/ConsentNotice';
 import { authApi } from '@/lib/api/auth';
 import { useAuthStore } from '@/lib/store/auth-store';
 import { Alert, Button, Input } from '@/components/ui';
@@ -82,6 +83,9 @@ export default function LoginPage() {
       </form>
 
       <SocialLogin />
+      <div className="mt-4">
+        <ConsentNotice action="بتسجيل الدخول أو إنشاء حساب" />
+      </div>
 
       <p className="mt-8 text-center text-sm text-fg-muted">
         ليس لديك حساب؟{' '}
