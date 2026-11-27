@@ -6,7 +6,7 @@ name: "معرض الأشياء — CI"
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, "launch/**"]
   pull_request:
 
 concurrency:

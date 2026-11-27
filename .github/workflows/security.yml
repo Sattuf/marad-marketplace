@@ -5,7 +5,7 @@ name: "Security"
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, "launch/**"]
   pull_request:
   schedule:
     - cron: "17 4 * * 1"

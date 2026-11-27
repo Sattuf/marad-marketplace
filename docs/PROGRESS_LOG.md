@@ -126,3 +126,17 @@
 - تشغيل من الصفر: `make clean` ← `make up` (2m16s، كل الخدمات healthy) ← `make seed` ← `make e2e` **52/52**.
 - `docs/FINAL_REPORT.md` كُتب؛ PROJECT_STATE (ما يعمل الآن) وROADMAP (عمل مستقبلي F1–F7) حُدّثا.
 - **انتهت كل مهام الخارطة. لا مهام ⛔.**
+
+## 2026-11-27 — الجلسة 2: خطة الإطلاق (`docs/EXECUTION_PLAN.md`)
+
+### فحص الجاهزية للإطلاق (قبل الخطة)
+- كل الاختبارات على الفرع `ccr-bd089a46-bdh8fo`: gateway 49، auth 31، listings 33، search 26، messaging 10، transactions 36، identity 9، users 8، moderation 11، fraud 15 (+6 متخطاة تحتاج DB)، personalization 8 (+6) — **236 ناجحاً**. `next build` ناجح. `npm audit --omit=dev`: 0 حرجة/عالية، 43 متوسطة.
+- ملاحظة: اختبارات transactions-service لا تنتهي بدون `--forceExit` (اتصال مفتوح) → ثانوي، في NEXT_STEPS لاحقاً.
+- موانع النشر المكتشفة: لا صفحات خصوصية/شروط، لا حذف حساب، لا Sign in with Apple مع وجود Google/Facebook على iOS، صور الهاتف لا تُدوَّر حسب EXIF، أسماء صور المحادثات بـ `Math.random`.
+
+### L0.1 — ملفات الخطة والسجل ✅
+- جديد: `CLAUDE.md` (يُحمَّل تلقائياً: اقرأ الخطة ثم السجل ثم التالي)، `docs/EXECUTION_PLAN.md` (الأدوار، الحلقة، قائمة الأمن، القرارات L-D1..L-D7، البيئات، المراحل L0–L6)، `docs/NEXT_STEPS.md` (ما ينتظر صاحب المشروع + المهام التالية بالتفصيل)، `docs/IMPROVEMENT_BACKLOG.md`، `docs/EXTERNAL_OFFERS_PLAN.md`.
+- **مراجعة أمنية:** وثائق فقط؛ لا أسرار. أهم نتيجة تصميمية: Supabase يكشف مخطط `public` عبر PostgREST لمفتاح `anon` العلني → قاعدة إلزامية في §6.2 قبل أي ترحيل إلى Supabase.
+
+### L0.2 — CI على `launch/**` 🔄
+- `ci.yml` و`security.yml`: أُضيف `launch/**` إلى فروع push. ينتظر نتيجة أول run.
