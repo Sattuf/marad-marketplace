@@ -6,18 +6,34 @@ import { UsersService } from '../users/users.service';
 import { AuthService } from '../auth/auth.service';
 import { safeEqual } from '../common/security';
 import * as twilio from 'twilio';
+import { MARKETS } from '../common/markets.generated';
 
 export const OTP_MAX_ATTEMPTS = 5;
 const OTP_LOCK_SECONDS = 15 * 60;
 const OTP_CODE_TTL_SECONDS = 5 * 60;
 const OTP_RESEND_SECONDS = 60;
 const OTP_DAILY_SEND_LIMIT = 10;
+/** SMS requests per client IP per hour: stops one client pumping SMS across many numbers. */
+export const OTP_IP_HOURLY_LIMIT = 10;
+
+/**
+ * Calling codes that may receive OTP SMS. Defaults to every market whose launch wave is
+ * <= MARKETS_ACTIVE_WAVE (packages/markets/markets.json); OTP_ALLOWED_CALLING_CODES
+ * ("90,966") overrides it. SMS to countries we do not serve is the main toll-fraud vector.
+ */
+export function allowedCallingCodes(activeWave: number, override?: string): string[] {
+  if (override && override.trim()) {
+    return override.split(',').map((c) => c.trim().replace(/^\+/, '')).filter((c) => /^\d{1,3}$/.test(c));
+  }
+  return MARKETS.filter((m) => m.wave <= activeWave).map((m) => m.callingCode);
+}
 
 @Injectable()
 export class OtpService {
   private twilioClient: twilio.Twilio | null = null;
   private verifyServiceSid: string | null = null;
   private readonly mockEnabled: boolean;
+  private readonly allowedCodes: string[];
   private readonly logger = new Logger(OtpService.name);
 
   constructor(
@@ -35,6 +51,12 @@ export class OtpService {
     // and can never be active in production, where it would let anyone sign in as any phone.
     const isProduction = this.configService.get<string>('NODE_ENV') === 'production';
     this.mockEnabled = !isProduction && this.configService.get<string>('OTP_MOCK_ENABLED') === 'true';
+
+    const activeWave = Number(this.configService.get<string>('MARKETS_ACTIVE_WAVE') ?? '1');
+    this.allowedCodes = allowedCallingCodes(
+      Number.isInteger(activeWave) && activeWave > 0 ? activeWave : 1,
+      this.configService.get<string>('OTP_ALLOWED_CALLING_CODES'),
+    );
 
     if (accountSid && authToken) {
       try {
@@ -57,9 +79,22 @@ export class OtpService {
     return new HttpException('خدمة رسائل التحقق غير متاحة حالياً', HttpStatus.SERVICE_UNAVAILABLE);
   }
 
-  async sendOtp(phone: string): Promise<{ message: string; mockCode?: string }> {
+  async sendOtp(phone: string, clientIp?: string): Promise<{ message: string; mockCode?: string }> {
     if (!this.isTwilioActive() && !this.mockEnabled) {
       throw this.otpUnavailable();
+    }
+
+    // Checked before any counter is touched, so blocked numbers cost nothing.
+    const digits = phone.replace(/^\+/, '');
+    if (!this.allowedCodes.some((code) => digits.startsWith(code))) {
+      throw new HttpException('خدمة رسائل التحقق غير متاحة لهذا البلد بعد', HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    if (clientIp) {
+      const fromIp = await this.redisService.incrWithTtl(`otp_ip_hourly:${clientIp}`, 3600);
+      if (fromIp > OTP_IP_HOURLY_LIMIT) {
+        throw new HttpException('طلبات كثيرة لرموز التحقق. الرجاء المحاولة لاحقاً', HttpStatus.TOO_MANY_REQUESTS);
+      }
     }
 
     const lockKey = `otp_lock:${phone}`;

@@ -198,6 +198,9 @@ services:
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?set JWT_REFRESH_SECRET in infra/.env}
       # Development only: OTP codes are logged instead of sent by SMS. Refused in production.
       OTP_MOCK_ENABLED: ${OTP_MOCK_ENABLED:-true}
+      # Countries that may receive OTP SMS: every market with wave <= this (packages/markets).
+      MARKETS_ACTIVE_WAVE: ${MARKETS_ACTIVE_WAVE:-1}
+      OTP_ALLOWED_CALLING_CODES: ${OTP_ALLOWED_CALLING_CODES:-}
       TRUST_PROXY_HOPS: "1"
     depends_on: *depends-core
 
@@ -211,6 +214,8 @@ services:
     environment:
       <<: *app-env
       PORT: "3002"
+      # Currency of a new listing when the client sends none (until listings carry a country).
+      DEFAULT_LISTING_CURRENCY: ${DEFAULT_LISTING_CURRENCY:-TRY}
       OTEL_SERVICE_NAME: listings-service
       S3_BUCKET: marad-listings-images
       S3_REGION: me-south-1

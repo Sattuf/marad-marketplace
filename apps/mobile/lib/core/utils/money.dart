@@ -1,17 +1,12 @@
 import 'package:intl/intl.dart';
 
+import 'markets.g.dart';
+
 /// Arabic currency names. "US$" inside right-to-left text is reordered by the bidi
 /// algorithm ("$US 1,250"), so the unit is written as a word — same rule as the web
 /// (apps/web/src/types/listing.ts, formatMoney).
-const Map<String, String> _currencyNames = {
-  'USD': 'دولار',
-  'SAR': 'ر.س',
-  'AED': 'د.إ',
-  'EUR': 'يورو',
-  'SYP': 'ل.س',
-  'IQD': 'د.ع',
-  'EGP': 'ج.م',
-};
+/// Generated from packages/markets/markets.json (every currency of every market).
+const Map<String, String> _currencyNames = currencyNamesAr;
 
 final NumberFormat _amount = NumberFormat('#,##0.##', 'en');
 

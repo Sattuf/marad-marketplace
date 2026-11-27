@@ -1,12 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { ListingsService } from './listings.service';
+import { ListingsService, defaultListingCurrency } from './listings.service';
 import { Listing, ListingStatus } from './entities/listing.entity';
 import { ListingImage } from './entities/listing-image.entity';
 import { StorageService } from '../storage/storage.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { of } from 'rxjs';
+import { validateSync } from 'class-validator';
+import { plainToInstance } from 'class-transformer';
+import { CreateListingDto } from './dto/create-listing.dto';
 
 const mockRedis = {
   incr: jest.fn(),
@@ -107,10 +110,37 @@ describe('ListingsService', () => {
       expect(result).toEqual(savedListing);
       expect(mockListingRepository.create).toHaveBeenCalledWith({
         ...createDto,
+        currency: 'USD',
         userId,
         status: ListingStatus.ACTIVE,
       });
       expect(mockListingRepository.save).toHaveBeenCalledWith(savedListing);
+    });
+
+    it('uses DEFAULT_LISTING_CURRENCY when the client sends none, and keeps an explicit one', async () => {
+      process.env.DEFAULT_LISTING_CURRENCY = 'try';
+      try {
+        mockListingRepository.create.mockImplementation((x) => x);
+        mockListingRepository.save.mockImplementation(async (x) => x);
+        const dto = { title: 'Phone', description: 'Used', price: 100 };
+        expect((await service.create('u', dto)).currency).toBe('TRY');
+        expect((await service.create('u', { ...dto, currency: 'SAR' })).currency).toBe('SAR');
+        process.env.DEFAULT_LISTING_CURRENCY = 'XXX';
+        expect(defaultListingCurrency()).toBe('USD');
+      } finally {
+        delete process.env.DEFAULT_LISTING_CURRENCY;
+      }
+    });
+  });
+
+  describe('CreateListingDto currency validation', () => {
+    const check = (currency: unknown) =>
+      validateSync(plainToInstance(CreateListingDto, { title: 't', description: 'd', price: 1, currency }));
+    it('accepts every market currency', () => {
+      for (const c of ['TRY', 'SAR', 'EGP', 'KWD', 'MAD', 'EUR', 'JPY']) expect(check(c)).toHaveLength(0);
+    });
+    it('rejects unknown or malformed currencies with a 400-style error instead of a DB failure', () => {
+      for (const c of ['ABCD', 'usd', 'XXX', '']) expect(check(c).map((e) => e.property)).toContain('currency');
     });
   });
 

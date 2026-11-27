@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { OtpService } from './otp.service';
+import { OtpService, OTP_IP_HOURLY_LIMIT, allowedCallingCodes } from './otp.service';
 import { RedisService } from '../redis/redis.service';
 import { UsersService } from '../users/users.service';
 import { AuthService } from '../auth/auth.service';
@@ -136,6 +136,47 @@ describe('OtpService', () => {
 
       await expect(service.sendOtp(mockPhone)).rejects.toMatchObject({ status: HttpStatus.TOO_MANY_REQUESTS });
       expect(redisService.set).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('country allowlist and per-IP limit (SMS pumping)', () => {
+    it('wave 1 allows Turkey and Saudi Arabia only', () => {
+      expect(allowedCallingCodes(1).sort()).toEqual(['90', '966']);
+    });
+
+    it('a later wave adds its countries; an explicit override wins', () => {
+      expect(allowedCallingCodes(2)).toEqual(expect.arrayContaining(['90', '966', '971', '20']));
+      expect(allowedCallingCodes(5, '+20, 212 ,x')).toEqual(['20', '212']);
+    });
+
+    it('rejects a number outside the active markets before touching any counter', async () => {
+      await expect(service.sendOtp('+447700900123', '203.0.113.7')).rejects.toMatchObject({
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+      });
+      expect(redisService.incrWithTtl).not.toHaveBeenCalled();
+      expect(redisService.setIfAbsent).not.toHaveBeenCalled();
+    });
+
+    it('accepts a Turkish number in wave 1', async () => {
+      redisService.get.mockResolvedValue(null);
+      const result = await service.sendOtp('+905321234567', '203.0.113.7');
+      expect(result.mockCode).toMatch(/^\d{6}$/);
+      expect(redisService.incrWithTtl).toHaveBeenCalledWith('otp_ip_hourly:203.0.113.7', 3600);
+    });
+
+    it('blocks one IP that requests codes for many numbers', async () => {
+      redisService.get.mockResolvedValue(null);
+      (redisService.incrWithTtl as jest.Mock).mockResolvedValue(OTP_IP_HOURLY_LIMIT + 1);
+      await expect(service.sendOtp(mockPhone, '203.0.113.7')).rejects.toMatchObject({
+        status: HttpStatus.TOO_MANY_REQUESTS,
+      });
+      expect(redisService.setIfAbsent).not.toHaveBeenCalled();
+    });
+
+    it('honours OTP_ALLOWED_CALLING_CODES', async () => {
+      config = { NODE_ENV: 'development', OTP_MOCK_ENABLED: 'true', OTP_ALLOWED_CALLING_CODES: '20' };
+      await buildService();
+      await expect(service.sendOtp(mockPhone)).rejects.toMatchObject({ status: HttpStatus.UNPROCESSABLE_ENTITY });
     });
   });
 

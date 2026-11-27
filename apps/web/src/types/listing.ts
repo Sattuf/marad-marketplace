@@ -1,3 +1,4 @@
+import { CURRENCY_NAMES_AR } from '@/lib/markets.generated';
 /**
  * Listing as returned by listings-service (entity Listing + relations).
  * The previous type described a real-estate model (bedrooms, area, location…) the
@@ -67,7 +68,8 @@ const numberFormatters = new Map<number, Intl.NumberFormat>();
 
 // Arabic currency names: "US$" inside right-to-left text is reordered by the bidi
 // algorithm and shows up as "$US 334", so the unit is written as a word instead.
-const CURRENCY_NAMES: Record<string, string> = { USD: 'دولار', SAR: 'ر.س', AED: 'د.إ', EUR: 'يورو', SYP: 'ل.س', IQD: 'د.ع', EGP: 'ج.م' };
+// Generated from packages/markets/markets.json (every currency of every market).
+const CURRENCY_NAMES = CURRENCY_NAMES_AR;
 
 /** "1,250.5" + "USD" → "1,250.5 دولار". Unknown currencies keep their ISO code. */
 export function formatMoney(value: number | string, currency = 'USD', maxFractionDigits = 2): string {

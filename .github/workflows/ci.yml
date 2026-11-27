@@ -29,6 +29,8 @@ jobs:
         run: node scripts/check-contracts.mjs
       - name: Shared security/database helpers are identical in every service
         run: node scripts/check-shared-copies.mjs
+      - name: Markets registry is valid and generated copies are in sync
+        run: node packages/markets/build.mjs --check
       - name: Helm chart lints and renders
         run: |
           docker run --rm -v "$PWD/infra/helm:/charts" alpine/helm:3.16.3 lint /charts/marad --strict

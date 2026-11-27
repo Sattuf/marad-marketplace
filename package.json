@@ -28,7 +28,9 @@
     "docker:down": "docker compose -f infra/docker-compose.yml down",
     "tokens:build": "node packages/design-tokens/build.mjs",
     "tokens:check": "node packages/design-tokens/build.mjs --check",
-    "e2e": "node scripts/e2e-smoke.mjs"
+    "e2e": "node scripts/e2e-smoke.mjs",
+    "markets:build": "node packages/markets/build.mjs",
+    "markets:check": "node packages/markets/build.mjs --check"
   },
   "engines": {
     "node": ">=20.0.0",

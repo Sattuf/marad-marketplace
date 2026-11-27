@@ -1,5 +1,5 @@
 import { SessionCookieInterceptor } from '../auth/session-cookie';
-import { Body, Controller, Post, HttpCode, HttpStatus, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Post, HttpCode, HttpStatus, Ip, UseInterceptors } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { OtpService } from './otp.service';
 import { SendOtpDto } from './dto/send-otp.dto';
@@ -15,9 +15,10 @@ export class OtpController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'إرسال رمز التحقق OTP للهاتف — Send verification OTP code' })
   @ApiResponse({ status: 200, description: 'تم إرسال الرمز بنجاح' })
+  @ApiResponse({ status: 422, description: 'البلد غير مدعوم لرسائل التحقق بعد' })
   @ApiResponse({ status: 429, description: 'طلبات متكررة بسرعة أو الهاتف مقفل' })
-  async sendOtp(@Body() sendOtpDto: SendOtpDto) {
-    return this.otpService.sendOtp(sendOtpDto.phone);
+  async sendOtp(@Body() sendOtpDto: SendOtpDto, @Ip() ipAddress: string) {
+    return this.otpService.sendOtp(sendOtpDto.phone, ipAddress);
   }
 
   @Post('verify-otp')

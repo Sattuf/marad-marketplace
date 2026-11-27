@@ -11,6 +11,7 @@ import { UpdateListingDto } from './dto/update-listing.dto';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { internalHeaders } from '../common/security';
+import { SUPPORTED_CURRENCIES } from './dto/create-listing.dto';
 
 export const MAX_PAGE_SIZE = 50;
 const DEFAULT_PAGE_SIZE = 20;
@@ -46,6 +47,12 @@ function toUuidList(value: unknown): string[] {
 /** Escapes LIKE wildcards so user input is matched literally. */
 function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
+/** DEFAULT_LISTING_CURRENCY when it is a supported ISO code, else USD (the historical default). */
+export function defaultListingCurrency(): string {
+  const configured = (process.env.DEFAULT_LISTING_CURRENCY || '').toUpperCase();
+  return SUPPORTED_CURRENCIES.includes(configured) ? configured : 'USD';
 }
 
 @Injectable()
@@ -128,6 +135,8 @@ export class ListingsService {
   async create(userId: string, createDto: CreateListingDto): Promise<Listing> {
     const listing = this.listingsRepository.create({
       ...createDto,
+      // Clients do not send a currency yet (L1.9); the deployment decides the default.
+      currency: createDto.currency ?? defaultListingCurrency(),
       userId,
       status: ListingStatus.ACTIVE,
     });
