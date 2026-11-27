@@ -419,7 +419,7 @@ secrets:
   metrics_token:
     environment: METRICS_TOKEN
   extra_ca:
-    file: ${EXTRA_CA_CERT:-/dev/null}
+    file: ${EXTRA_CA_CERT:-./docker/no-extra-ca.pem}
 
 volumes:
   postgres_data:

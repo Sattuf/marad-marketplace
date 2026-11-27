@@ -1,2 +1,6 @@
 # Reviewed false positive: the audit report quoted the NestJS README placeholder token (S13).
 23389aaabfbc118da78715c449d2827767cb257c:docs/SECURITY_AUDIT.md:generic-api-key:45
+# Reviewed false positive: deliberately forged token in the demo ({"sub":"x","role":"admin"}, signature = the word "signature"); it must be rejected with 401.
+acb99edc1c457e81b05d78fa0de554632b063e88:scripts/demo.sh:jwt:31
+# Reviewed false positive: fake JWT fixture in a logging-redaction test (file since removed; still in history).
+64fb7c68458d5189ae395cb2b42317151970a49a:services/listings-service/src/common/logging.spec.ts:jwt:48

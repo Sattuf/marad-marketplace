@@ -139,4 +139,14 @@
 - **مراجعة أمنية:** وثائق فقط؛ لا أسرار. أهم نتيجة تصميمية: Supabase يكشف مخطط `public` عبر PostgREST لمفتاح `anon` العلني → قاعدة إلزامية في §6.2 قبل أي ترحيل إلى Supabase.
 
 ### L0.2 — CI على `launch/**` 🔄
-- `ci.yml` و`security.yml`: أُضيف `launch/**` إلى فروع push. ينتظر نتيجة أول run.
+- `ci.yml` و`security.yml`: أُضيف `launch/**` إلى فروع push.
+- **أول run كشف 4 أعطال سابقة** (موجودة في `ccr-bd089a46-bdh8fo` نفسه؛ لم تظهر لأن CI لم يكن يعمل على ذلك الفرع):
+  1. **E2E:** Buildx الحديث يرفض secret من `/dev/null` بدون `--allow=fs.read` → الافتراضي صار `infra/docker/no-extra-ca.pem` (فارغ). تحديث ADR-003.
+  2. **npm audit (عالية):** `glob` < 14.0.2 (GHSA-3g3m-2fjr-6pw4، GHSA-5j98-mcp5-4vw2) نُشر بعد 24 نوفمبر؛ المسار الإنتاجي `typeorm → glob@10.5.0`.
+     المحاولة 1: `--package-lock-only` → لم يُطبَّق الـ override. المحاولة 2: حذف المدخل من lockfile → glob@10.4.5 رُفع للجذر (أسوأ).
+     المحاولة 3 (نجحت): override مقيّد `typeorm → glob ^14.0.6` (يحتفظ بـ `sync` ويدعم Node 20) و`@nestjs/cli → glob ^10.5.0`، وإعادة توليد lockfile من الصفر بـ `--legacy-peer-deps`؛ نفس الشيء في users وmoderation.
+  3. **Trivy (عالية):** CVE-2025-64756 في glob@10.4.5 (dev) → يُغلقه override `@nestjs/cli` نفسه.
+  4. **gitleaks:** رمزان JWT مزيفان (رمز مزوّر عمداً في `demo.sh`، وfixture في اختبار محذوف) → بصمتان في `.gitleaksignore` بعد المراجعة.
+- **التحقق المحلي بعد إعادة توليد lockfile:** `npm ci` (بدون أعلام) ناجح؛ tsc (tsconfig.build) نظيف في 9 خدمات + الويب؛ الاختبارات: 49+31+33+26+10+36+9+8+11 + ويب 61 — كلها ناجحة؛ `next build` ناجح؛ lint 0 أخطاء (36 تحذيراً معروفاً)؛ `npm audit --omit=dev --audit-level=high` نظيف في الجذر وusers وmoderation.
+- ملاحظة: `search-service` spec فيه خطأ نوع (`null` إلى `string | undefined`) لا يظهر في CI لأن tsconfig.build يستبعد الاختبارات → ثانوي، في NEXT_STEPS.
+- **مراجعة أمنية:** الـ override يرفع glob إلى إصدار مُصلَح فقط في مسار typeorm؛ typeorm يستدعي `glob.sync` على مسارات الكيانات من الإعداد (لا مدخلات مستخدم). البصمتان المستثناتان ليستا أسراراً حقيقية (راجعتُ المحتوى).
