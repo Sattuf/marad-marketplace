@@ -138,7 +138,7 @@
 - جديد: `CLAUDE.md` (يُحمَّل تلقائياً: اقرأ الخطة ثم السجل ثم التالي)، `docs/EXECUTION_PLAN.md` (الأدوار، الحلقة، قائمة الأمن، القرارات L-D1..L-D7، البيئات، المراحل L0–L6)، `docs/NEXT_STEPS.md` (ما ينتظر صاحب المشروع + المهام التالية بالتفصيل)، `docs/IMPROVEMENT_BACKLOG.md`، `docs/EXTERNAL_OFFERS_PLAN.md`.
 - **مراجعة أمنية:** وثائق فقط؛ لا أسرار. أهم نتيجة تصميمية: Supabase يكشف مخطط `public` عبر PostgREST لمفتاح `anon` العلني → قاعدة إلزامية في §6.2 قبل أي ترحيل إلى Supabase.
 
-### L0.2 — CI على `launch/**` 🔄
+### L0.2 — CI على `launch/**` ✅
 - `ci.yml` و`security.yml`: أُضيف `launch/**` إلى فروع push.
 - **أول run كشف 4 أعطال سابقة** (موجودة في `ccr-bd089a46-bdh8fo` نفسه؛ لم تظهر لأن CI لم يكن يعمل على ذلك الفرع):
   1. **E2E:** Buildx الحديث يرفض secret من `/dev/null` بدون `--allow=fs.read` → الافتراضي صار `infra/docker/no-extra-ca.pem` (فارغ). تحديث ADR-003.
@@ -151,10 +151,12 @@
 - ملاحظة: `search-service` spec فيه خطأ نوع (`null` إلى `string | undefined`) لا يظهر في CI لأن tsconfig.build يستبعد الاختبارات → ثانوي، في NEXT_STEPS.
 - **مراجعة أمنية:** الـ override يرفع glob إلى إصدار مُصلَح فقط في مسار typeorm؛ typeorm يستدعي `glob.sync` على مسارات الكيانات من الإعداد (لا مدخلات مستخدم). البصمتان المستثناتان ليستا أسراراً حقيقية (راجعتُ المحتوى).
 
-### L1.5 — تدوير صور الهاتف حسب EXIF 🔄 (ينتظر CI)
+### L1.5 — تدوير صور الهاتف حسب EXIF ✅
 - `listings-service` (الصورة والمصغّرة) و`messaging-service`: `sharp().rotate()` قبل `resize`.
 - **خطأ إضافي اكتُشف بالاختبار:** `fit: 'inside'` كان **يكبّر** الصور الصغيرة (64×48 → 1200×900): ضبابية وتخزين مهدور. أُضيف `withoutEnlargement: true` (والمحادثات كذلك).
 - اختبار جديد بـ sharp حقيقي: صورة 64×48 بـ orientation=6 → الناتج 48×64، بلا orientation وبلا EXIF.
 - **التحقق:** listings 34 (+1)، messaging 10؛ tsc نظيف؛ eslint نظيف للملفات المعدّلة.
 - **مراجعة أمنية:** `withMetadata()` غير مستدعاة → sharp يحذف كل EXIF بما فيه GPS (أثبته الاختبار). لا مسار أو صلاحية جديدة.
 - **تسويق:** الصور المقلوبة تجعل الإعلان يبدو رديئاً وتقلل الثقة والنقر؛ الآن كل صورة هاتف تظهر مستقيمة.
+- **CI أخضر بالكامل** على الفرعين (كل الـ jobs بما فيها E2E للمكدس الكامل، CodeQL، Trivy، gitleaks، npm audit):
+  `launch/plan` run 45992191103 و45992191086؛ `launch/L1.5-image-rotation` run 45992220966 و45992221026.
