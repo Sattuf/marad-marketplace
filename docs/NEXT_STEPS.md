@@ -10,7 +10,7 @@
 | U1 | ✅ الموصّل مربوط. **باقٍ:** الخطة المجانية تسمح بمشروعين نشطين فقط، و`sanad` و`madinatuna` نشطان → أوقف أحدهما مؤقتاً (Pause) أو رقِّ الخطة، ثم أنشئ أنا `marad-staging` (eu-central-1) | قاعدة البيانات الحقيقية (L2) | Supabase Dashboard → المشروع → Settings → Pause project |
 | U2 | إضافة أسرار GitHub: `SUPABASE_DB_URL` (direct) و`SUPABASE_POOLER_URL` و`SUPABASE_ANON_KEY` | CI يتصل بـ Supabase؛ أنا لا أستطيع الاتصال المباشر من بيئتي | Repo → Settings → Secrets and variables → Actions |
 | U3 | تفعيل GitHub Pages بمصدر «GitHub Actions» | نشر الصفحات القانونية (L1.2) | Repo → Settings → Pages → Source: GitHub Actions |
-| U4 | فتح PR من `ccr-bd089a46-bdh8fo` إلى `main` ودمجه، ثم PR من `launch/plan` | `main` قديم (أكتوبر)؛ كل العمل الجديد مبني على الفرع | الروابط في رد المحادثة |
+| U4 | فتح PR من `launch/L1.3-account-deletion` إلى `main` ودمجه — **فرع واحد يحمل كل العمل** (مكدّس: ccr → plan → L1.5 → L1.8 → L1.6 → L1.1 → L1.3)، وكل طبقة CI أخضر | `main` قديم (أكتوبر)؛ كل العمل الجديد مبني على الفرع | الروابط في رد المحادثة |
 | U5 | ✅ Vercel مربوط (حساب شخصي، بلا فرق) | نشر الويب (L3.1) | — |
 | U6 | ✅ تركيا والسعودية (الموجة 1)، ثم الخليج ومصر، سوريا والمغرب العربي، أوروبا، شرق آسيا (`MARKETS.md`) | — | — |
 | U7 | التسجيل في Amazon Associates (amazon.com.tr وamazon.sa) + AliExpress Portals + Noon — **اختياري الآن**: الطبقة الأولى (متاجر معرض) لا تحتاجه | القبول يأخذ أسابيع (L5 المرحلة 0) | يحتاج هويتك وبياناتك الضريبية — لا أستطيع فعله نيابة عنك |
