@@ -17,36 +17,20 @@
 | U9 | اسم الجهة القانونية المشغّلة وبريد الخصوصية → متغيرات المستودع `LEGAL_ENTITY_NAME` و`LEGAL_CONTACT_EMAIL` (Settings → Secrets and variables → Actions → **Variables**) | يظهران في صفحات الخصوصية؛ لن أخترعهما | — |
 | U8 | (لاحقاً، L3.2) اختيار مزود VPS والدفع | تشغيل الخدمات الخلفية | سأقترح مواصفات محددة عند الوصول |
 
-## ▶️ التالي: L1.3b ثم L1.9 ثم L1.4 (لا تحتاج شيئاً منك)
+## ▶️ التالي: P1 — أرشفة كود السوق (`PIVOT_PLAN.md` §7)
 
-### L1.9 — دولة لكل إعلان (اكتُشف في L1.8)
-- نماذج النشر في الويب والجوال **لا ترسل عملة**، فكل إعلان كان يُحفظ USD. حل مؤقت في L1.8: `DEFAULT_LISTING_CURRENCY` (افتراضي TRY).
-- الحل الكامل: عمود `country` في `listings` (ترحيل، افتراضي من `DEFAULT_LISTING_COUNTRY`)، حقل دولة في الملف الشخصي، قائمة عملات في النموذج تبدأ بعملة دولة البائع، وفلتر دولة في البحث (فهرس ES).
-- **أمن:** الدولة والعملة من قائمة السجل فقط (`IsIn`)؛ لا ثقة بموقع الجهاز.
+الخطوات بالترتيب، فرع `launch/P1-archive-marketplace`:
+1. `git mv` إلى `archive/services/`: listings، messaging، transactions، moderation، identity، personalization.
+2. الجذر: إزالتها من `workspaces` وسكربتات `dev:*`؛ إعادة توليد lockfile (`--legacy-peer-deps`) والتحقق بـ `npm ci` نظيف.
+3. `infra/docker-compose.yml`، `infra/helm/marad/values.yaml`، `infra/monitoring` (أهداف Prometheus)، `Makefile`: الخدمات الباقية فقط.
+4. البوابة: `services.config.ts` + `BLOCKED_ROUTES` + مجمّع OpenAPI: إزالة الخدمات المؤرشفة؛ اختبارات البوابة تُحدَّث.
+5. search-service: يعتمد على listings في الفهرسة/الترتيب → تعطيل الاعتماد مؤقتاً (يُعاد توجيهه في P3).
+6. auth-service: إزالة نداء `visibility` للإعلانات من حذف الحساب (لا إعلانات) — مع إبقاء الحذف/الاسترجاع.
+7. الويب والجوال: نقل الشاشات المعتمدة على الخدمات المؤرشفة إلى `archive/apps/`؛ صفحة رئيسية مؤقتة «قريباً: أرخص سعر» + الدخول + الصفحات القانونية + الملف الشخصي وحذف الحساب.
+8. CI: مصفوفة الخدمات، `check-shared-copies`، `check-contracts`، `check-entity-schema`، E2E (يُعاد بمسار: صحة الخدمات + دخول + حذف حساب).
+9. **بوابة:** CI أخضر بالكامل؛ `make up` يشغّل الباقي فقط؛ لا استيراد من `archive/` (فحص grep في CI).
 
-## (منجز، للمرجع) L0.2 — CI على فروع `launch/**`
-
-- **ما:** إضافة `launch/**` إلى `on.push.branches` في `.github/workflows/ci.yml` و`security.yml`.
-- **لماذا:** لا أستطيع فتح PR (لا رمز GitHub API)، فبدون هذا لن يعمل CI على فروعي.
-- **التحقق:** `curl -s "https://api.github.com/repos/Sattuf/marad-marketplace/actions/runs?branch=launch/plan"` → `conclusion: success`.
-- **أمن:** لا تغيير في الصلاحيات؛ `permissions:` في الـ workflow تبقى أقل ما يمكن. انتبه: CI على push لا يكشف أسراراً لـ forks.
-
-## بعده بالترتيب
-
-### L1.3b — المسح النهائي بعد 30 يوماً + الجوال
-- **cron يومي في auth-service** (قفل Redis كي لا تعمل نسختان): المستخدمون بـ `deleted_at < now() - 30 days` ولم يُمسحوا بعد.
-- **لا حذف لصف `users`**: جداول المحادثة `ON DELETE CASCADE` ستحذف محادثات الطرف الآخر. بدلاً من ذلك tombstone: `full_name='مستخدم محذوف'`، و`NULL` لـ email/phone/password/avatar/bio/city/location/google_id/facebook_id/fcm_token، و`status`=`banned`؟ (لا — عمود `purged_at` جديد أوضح).
-- مسارات داخلية لكل خدمة (كل منها يحذف بياناته هو، حسب ملكية الجداول في POSTGRES.md):
-  listings: حذف الإعلانات وصورها (ملفات/S3) · users-service: المفضلة والصورة الشخصية · personalization: `DELETE FROM user_events WHERE user_id` · identity: وثائق KYC (مع المفاتيح) · messaging: صور المحادثات التي أرسلها (الرسائل النصية تبقى بلا اسم) · fraud: يبقى حتى 12 شهراً (مذكور في السياسة).
-- كل خطوة idempotent وتُعاد في اليوم التالي إن فشلت؛ مقياس `account_purge_total{result}` وتنبيه عند الفشل المتكرر.
-- **الجوال (Flutter):** شاشة الإعدادات: روابط الخصوصية/الشروط (`/privacy` …) + «حذف الحساب» بنفس منطق الويب (كلمة مرور أو SMS). شرط App Store: الحذف من داخل التطبيق.
-- **قرار مرتبط:** حظر الإشراف (`users/:id/status = banned`) يجب أن يستدعي `visibility hidden=true` أيضاً (اكتُشف في L1.3a: الإعلانات تبقى ظاهرة بعد الحظر).
-
-### L1.7 — حماية OTP
-- حد لكل رقم (3/ساعة)، لكل IP (10/ساعة)، قائمة دول مسموحة من `OTP_ALLOWED_COUNTRY_CODES`، رفض الأرقام المميزة.
-- مقياس `otp_sent_total{country}` وتنبيه عند قفزة.
-
-### صيانة صغيرة (تُدمج مع أقرب مهمة تلمس الملف)
-- `search-service/src/ranking/ranking.service.spec.ts:38`: `null` → `undefined` (خطأ نوع لا يراه CI لأن tsconfig.build يستبعد الاختبارات). الأفضل: خطوة CI تشغّل `tsc -p tsconfig.json` أيضاً لتشمل الاختبارات.
-- `transactions-service`: الاختبارات لا تنتهي بدون `--forceExit` (اتصال Redis/DB مفتوح في الاختبارات) → إغلاقه في `afterAll`.
-
+## بعده
+- **P2 البحث** (تركيا ← السعودية ← سوريا) كما في `PIVOT_PLAN.md` §5 — أبدأه بالتوازي مع P1 لأنه لا يلمس الكود.
+- **L1.3b** المسح النهائي بعد 30 يوماً (أبسط بعد الأرشفة: auth + users فقط).
+- **L1.4** Sign in with Apple (ما زال شرطاً للمتجر).
