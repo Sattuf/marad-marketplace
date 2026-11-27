@@ -42,6 +42,10 @@ export class Listing {
   @Column({ name: 'views_count', default: 0 })
   viewsCount: number;
 
+  /** Set while the owner's account is pending deletion: hidden everywhere, restorable. */
+  @Column({ name: 'owner_hidden_at', type: 'timestamptz', nullable: true, select: false })
+  ownerHiddenAt: Date | null;
+
   @OneToMany(() => ListingImage, image => image.listing, { cascade: true })
   images: ListingImage[];
 

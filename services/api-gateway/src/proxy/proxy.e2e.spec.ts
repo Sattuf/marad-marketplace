@@ -69,6 +69,8 @@ describe('ProxyController (e2e)', () => {
 
   it.each([
     ['post', '/api/v1/listings/batch'],
+    ['put', '/api/v1/listings/internal/owners/abc/visibility'],
+    ['get', '/api/v1/listings/INTERNAL/anything'],
     ['put', '/api/v1/listings/abc/status'],
     ['put', '/api/v1/users/users/abc/verify'],
     ['put', '/api/v1/users/users/abc/status'],

@@ -38,6 +38,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (isBlockedStatus(user.status)) {
       throw new UnauthorizedException('حسابك موقوف حالياً');
     }
+    if (user.deletedAt) {
+      // Closed by its owner: tokens issued before the request stop working at once.
+      throw new UnauthorizedException('المستخدم غير موجود');
+    }
     // Same shape as the login response's `user`, so GET /auth/me can restore a session.
     return {
       id: user.id,

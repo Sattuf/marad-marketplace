@@ -115,6 +115,10 @@ export class User {
   })
   authProvider: AuthProvider;
 
+  /** Set when the owner asked to delete the account (closed now, scrubbed after 30 days). */
+  @Column({ name: 'deleted_at', type: 'timestamptz', nullable: true })
+  deletedAt: Date | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 

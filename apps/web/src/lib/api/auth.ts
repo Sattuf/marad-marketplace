@@ -105,6 +105,13 @@ export const authApi = {
     return signedIn(response.data);
   },
   
+  /** Closes the account (restorable for 30 days by signing in). One proof is required. */
+  deleteAccount: async (proof: { password?: string; otp?: string }) => {
+    const response = await api.post<{ deletedAt: string; purgeAfter: string }>('/auth/account/delete', proof);
+    setAccessToken(null);
+    return response.data;
+  },
+
   logout: async () => {
     // Revokes the refresh token and clears both cookies.
     await api.post('/auth/logout', {}, SESSION).catch(() => {});

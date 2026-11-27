@@ -96,4 +96,19 @@ describe('UsersService', () => {
     expect(result).not.toHaveProperty('notification_messages');
     expect(result.full_name).toBe('Public Name');
   });
+
+  it('a closed account shows as a tombstone without any personal data', async () => {
+    mockUsersRepository.findOne.mockResolvedValueOnce({
+      id: 'user-2',
+      full_name: 'Real Name',
+      bio: 'about me',
+      city: 'Istanbul',
+      avatar_url: 'http://x/a.jpg',
+      is_identity_verified: true,
+      deleted_at: new Date(),
+    });
+    const result = await service.getPublicProfile('user-2');
+    expect(result).toMatchObject({ id: 'user-2', full_name: 'مستخدم محذوف', is_deleted: true, avatar_url: null, bio: null, city: null });
+    expect(JSON.stringify(result)).not.toMatch(/Real Name|Istanbul|about me|a\.jpg/);
+  });
 });

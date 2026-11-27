@@ -130,6 +130,15 @@ export class ListingsController {
     return this.listingsService.updateStatusInternal(id, status);
   }
 
+  @Put('internal/owners/:userId/visibility')
+  @ApiOperation({ summary: 'Internal (auth-service): hide or restore all listings of a user pending account deletion' })
+  @ApiBody({ schema: { properties: { hidden: { type: 'boolean' } } } })
+  setOwnerVisibility(@Request() req, @Param('userId', ParseUUIDPipe) userId: string, @Body('hidden') hidden: unknown) {
+    assertInternalRequest(req.headers);
+    if (typeof hidden !== 'boolean') throw new BadRequestException('hidden must be a boolean');
+    return this.listingsService.setOwnerHidden(userId, hidden);
+  }
+
   @Post('batch')
   @ApiOperation({ summary: 'Internal: Get multiple listings by IDs' })
   @ApiBody({ schema: { properties: { ids: { type: 'array', items: { type: 'string' } } } } })

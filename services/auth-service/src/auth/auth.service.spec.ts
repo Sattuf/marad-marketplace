@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
+import { AccountDeletionService } from '../account/account-deletion.service';
 import { UsersService } from '../users/users.service';
 import { RedisService } from '../redis/redis.service';
 import { JwtService } from '@nestjs/jwt';
@@ -40,6 +41,7 @@ describe('AuthService', () => {
     googleId: null,
     facebookId: null,
     authProvider: AuthProvider.LOCAL,
+    deletedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -78,6 +80,8 @@ describe('AuthService', () => {
         { provide: RedisService, useValue: mockRedisService },
         { provide: JwtService, useValue: mockJwtService },
         { provide: ConfigService, useValue: mockConfigService },
+        // Pass-through: no account in these tests is pending deletion.
+        { provide: AccountDeletionService, useValue: { restoreOnSignIn: jest.fn(async (u) => u) } },
       ],
     }).compile();
 

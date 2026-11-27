@@ -37,6 +37,7 @@ export const BLOCKED_ROUTES: { service: string; method: string; pattern: RegExp 
   // scraping; where the prefix is stripped (/auth/metrics → /metrics) it must not leak.
   { service: '*', method: '*', pattern: /^\/metrics\/?$/i },
   { service: 'listings-service', method: 'POST', pattern: /^\/listings\/batch\/?$/i },
+  { service: 'listings-service', method: '*', pattern: /^\/listings\/internal(\/|$)/i },
   { service: 'listings-service', method: 'PUT', pattern: /^\/listings\/[^/]+\/status\/?$/i },
   { service: 'users-service', method: '*', pattern: /^\/users\/[^/]+\/(status|verify)\/?$/i },
   { service: 'search-service', method: 'POST', pattern: /^\/search\/index\/?$/i },

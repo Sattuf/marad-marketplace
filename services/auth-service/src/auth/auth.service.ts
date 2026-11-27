@@ -21,6 +21,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { OAuth2Client } from 'google-auth-library';
 import { ACCESS_TOKEN_AUDIENCE, ACCESS_TOKEN_ISSUER, internalHeaders, requireSecret } from '../common/security';
 import { loadSigningKey, SigningKey } from './signing-key';
+import { AccountDeletionService } from '../account/account-deletion.service';
 
 /** Refresh tokens: HS256, verified only here, with their own audience so they can never
  * be accepted as access tokens (and access tokens never as refresh tokens). */
@@ -62,6 +63,7 @@ export class AuthService {
     private readonly redisService: RedisService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly accountDeletion: AccountDeletionService,
   ) {
     this.signingKey = loadSigningKey();
     this.jwtRefreshSecret = requireSecret('JWT_REFRESH_SECRET');
@@ -165,6 +167,8 @@ export class AuthService {
     if (isBlockedStatus(user.status)) {
       throw new UnauthorizedException('هذا الحساب موقوف حالياً');
     }
+    // A sign-in within 30 days of a deletion request restores the account.
+    user = await this.accountDeletion.restoreOnSignIn(user);
 
     const tokens = await this.generateTokensForUser(user);
     return this.buildAuthResponse(user, tokens);
@@ -206,7 +210,7 @@ export class AuthService {
     await this.redisService.set(usedKey, String(Date.now()), REFRESH_TTL_SECONDS);
 
     const user = await this.usersService.findOneById(userId);
-    if (!user || isBlockedStatus(user.status)) {
+    if (!user || isBlockedStatus(user.status) || user.deletedAt) {
       throw new UnauthorizedException('المستخدم غير موجود أو موقوف');
     }
 
@@ -235,6 +239,7 @@ export class AuthService {
     if (isBlockedStatus(user.status)) {
       throw new UnauthorizedException('هذا الحساب موقوف حالياً');
     }
+    user = await this.accountDeletion.restoreOnSignIn(user);
     const tokens = await this.generateTokensForUser(user);
     return this.buildAuthResponse(user, tokens);
   }

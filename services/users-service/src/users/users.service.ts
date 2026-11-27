@@ -37,6 +37,20 @@ export class UsersService {
 
   async getPublicProfile(userId: string) {
     const user = await this.getProfile(userId);
+    if (user.deleted_at) {
+      // A closed account: other people's chats, reviews and deals still reference this id,
+      // so return a stable tombstone instead of a 404, with nothing personal in it.
+      return {
+        id: user.id,
+        full_name: 'مستخدم محذوف',
+        bio: null,
+        city: null,
+        avatar_url: null,
+        is_identity_verified: false,
+        created_at: null,
+        is_deleted: true,
+      };
+    }
     return {
       id: user.id,
       full_name: user.full_name,

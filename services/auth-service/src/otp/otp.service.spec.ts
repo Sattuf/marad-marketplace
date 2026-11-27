@@ -38,6 +38,7 @@ describe('OtpService', () => {
     googleId: null,
     facebookId: null,
     authProvider: AuthProvider.LOCAL,
+    deletedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };

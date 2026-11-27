@@ -47,4 +47,8 @@ export class User {
 
   @Column({ type: 'timestamp', nullable: true })
   identity_verified_at: Date;
+
+  // Column owned by auth-service: set while the owner's account is pending deletion.
+  @Column({ type: 'timestamptz', nullable: true })
+  deleted_at: Date | null;
 }

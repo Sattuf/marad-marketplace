@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, IsNull } from 'typeorm';
 import { Listing, ListingStatus } from './entities/listing.entity';
 import { ListingImage } from './entities/listing-image.entity';
 import { StorageService } from '../storage/storage.service';
@@ -174,6 +174,7 @@ export class ListingsService {
     if (categoryId) {
       qb.andWhere('listing.categoryId IN (SELECT c.id FROM categories c WHERE c.id = :categoryId OR c.parent_id = :categoryId)', { categoryId });
     }
+    qb.andWhere('listing.ownerHiddenAt IS NULL');
     if (userId) qb.andWhere('listing.userId = :userId', { userId });
     if (query.ids !== undefined) qb.andWhere(ids.length ? 'listing.id IN (:...ids)' : '1 = 0', { ids });
     if (search) qb.andWhere("listing.title ILIKE :search ESCAPE '\\'", { search: `%${escapeLike(search)}%` });
@@ -212,7 +213,45 @@ export class ListingsService {
   async findOne(id: string): Promise<Listing> {
     const listing = await this.findOneAnyStatus(id);
     if (listing.status === ListingStatus.DELETED) throw new NotFoundException('Listing not found');
+    if (await this.isOwnerHidden(id)) throw new NotFoundException('Listing not found');
     return listing;
+  }
+
+  private async isOwnerHidden(id: string): Promise<boolean> {
+    const row = await this.listingsRepository
+      .createQueryBuilder('listing')
+      .select('1')
+      .where('listing.id = :id AND listing.ownerHiddenAt IS NOT NULL', { id })
+      .getRawOne();
+    return !!row;
+  }
+
+  /**
+   * Account deletion (auth-service, internal): hide or restore every listing of a user,
+   * and keep the search index in step. Bounded by one owner's listings.
+   */
+  async setOwnerHidden(userId: string, hidden: boolean): Promise<{ affected: number }> {
+    const result = await this.listingsRepository
+      .createQueryBuilder()
+      .update(Listing)
+      .set({ ownerHiddenAt: hidden ? () => 'now()' : null })
+      .where('user_id = :userId', { userId })
+      .andWhere(hidden ? 'owner_hidden_at IS NULL' : 'owner_hidden_at IS NOT NULL')
+      .andWhere('status != :deleted', { deleted: ListingStatus.DELETED })
+      .returning(['id'])
+      .execute();
+    const ids: string[] = (result.raw ?? []).map((r: { id: string }) => r.id);
+    if (ids.length) {
+      if (hidden) {
+        for (const id of ids) void this.triggerSearchIndex('delete', { id });
+      } else {
+        const restored = await this.listingsRepository.find({ where: { id: In(ids) }, relations: { images: true } });
+        for (const listing of restored) {
+          if (listing.status === ListingStatus.ACTIVE) void this.triggerSearchIndex('create', listing);
+        }
+      }
+    }
+    return { affected: ids.length };
   }
 
   private async findOneAnyStatus(id: string): Promise<Listing> {
@@ -230,7 +269,7 @@ export class ListingsService {
     if (!ids || ids.length === 0) return [];
     
     const listings = await this.listingsRepository.find({
-      where: { id: In(ids) },
+      where: { id: In(ids), ownerHiddenAt: IsNull() },
     });
     
     const listingsMap = new Map(listings.map(l => [l.id, l]));

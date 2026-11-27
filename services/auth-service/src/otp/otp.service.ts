@@ -150,6 +150,33 @@ export class OtpService {
   }
 
   async verifyOtp(phone: string, code: string): Promise<any> {
+    await this.consumeCode(phone, code);
+
+    let user = await this.usersService.findOneByPhone(phone);
+    if (!user) {
+      user = await this.usersService.create({
+        phone,
+        fullName: `مستخدم ${phone.slice(-4)}`,
+        isPhoneVerified: true,
+        isVerified: false,
+        preferredLanguage: 'ar',
+      });
+    } else if (!user.isPhoneVerified) {
+      // First proof of phone ownership. Whoever registered this number before without
+      // verifying it may not be its owner, so their password and sessions are dropped
+      // (pre-registration account hijack).
+      user = await this.usersService.update(user.id, { isPhoneVerified: true, passwordHash: null });
+      await this.redisService.deleteByPattern(`refresh:${user.id}:*`);
+    }
+
+    return this.authService.loginWithoutPassword(user);
+  }
+
+  /**
+   * Checks a code with the same lock and attempt counting as sign-in, then consumes it.
+   * Throws on failure. Used by sign-in and by re-authentication (account deletion).
+   */
+  async consumeCode(phone: string, code: string): Promise<void> {
     if (!this.isTwilioActive() && !this.mockEnabled) {
       throw this.otpUnavailable();
     }
@@ -196,25 +223,6 @@ export class OtpService {
 
     await this.redisService.del(attemptsKey);
     await this.redisService.del(`otp_code:${phone}`);
-
-    let user = await this.usersService.findOneByPhone(phone);
-    if (!user) {
-      user = await this.usersService.create({
-        phone,
-        fullName: `مستخدم ${phone.slice(-4)}`,
-        isPhoneVerified: true,
-        isVerified: false,
-        preferredLanguage: 'ar',
-      });
-    } else if (!user.isPhoneVerified) {
-      // First proof of phone ownership. Whoever registered this number before without
-      // verifying it may not be its owner, so their password and sessions are dropped
-      // (pre-registration account hijack).
-      user = await this.usersService.update(user.id, { isPhoneVerified: true, passwordHash: null });
-      await this.redisService.deleteByPattern(`refresh:${user.id}:*`);
-    }
-
-    return this.authService.loginWithoutPassword(user);
   }
 
   private async lockPhone(lockKey: string, attemptsKey: string): Promise<void> {

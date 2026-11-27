@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Edit2, Mail, Phone, MapPin, Calendar, ShieldCheck, Star } from 'lucide-react';
 import { userApi, type Profile } from '@/lib/api/users';
+import { DeleteAccountSection } from '@/components/account/DeleteAccountSection';
 
 type UserProfile = Profile & {
   phone?: string;
@@ -151,6 +152,7 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+      <DeleteAccountSection phone={profile.phone} />
     </div>
   );
 }

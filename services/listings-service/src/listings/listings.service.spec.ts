@@ -32,6 +32,7 @@ describe('ListingsService', () => {
     create: jest.fn(),
     save: jest.fn(),
     findOne: jest.fn(),
+    find: jest.fn(),
     createQueryBuilder: jest.fn(),
   };
 
@@ -54,10 +55,12 @@ describe('ListingsService', () => {
 
   const queryBuilder = () => {
     const qb: any = {};
-    for (const m of ['leftJoinAndSelect', 'where', 'andWhere', 'orderBy', 'addOrderBy', 'skip', 'take']) {
+    for (const m of ['leftJoinAndSelect', 'where', 'andWhere', 'orderBy', 'addOrderBy', 'skip', 'take', 'select', 'update', 'set', 'returning']) {
       qb[m] = jest.fn().mockReturnValue(qb);
     }
     qb.getManyAndCount = jest.fn().mockResolvedValue([[{ id: 'l-1' }], 120]);
+    qb.getRawOne = jest.fn().mockResolvedValue(undefined); // owner not hidden
+    qb.execute = jest.fn().mockResolvedValue({ raw: [] });
     return qb;
   };
 
@@ -90,6 +93,8 @@ describe('ListingsService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    // Default: a fresh builder whose owner-hidden lookup finds nothing.
+    mockListingRepository.createQueryBuilder.mockImplementation(() => queryBuilder());
   });
 
   it('should be defined', () => {
@@ -248,7 +253,50 @@ describe('ListingsService', () => {
 
       await service.findAll({ categoryId: 'abc', userId: '../x' });
 
-      expect(qb.andWhere).not.toHaveBeenCalled();
+      // Only the always-on filter: listings of accounts pending deletion are hidden.
+      expect(qb.andWhere).toHaveBeenCalledTimes(1);
+      expect(qb.andWhere).toHaveBeenCalledWith('listing.ownerHiddenAt IS NULL');
+    });
+  });
+
+  describe('account pending deletion (owner hidden)', () => {
+    it('hides the listing from the public lookup', async () => {
+      mockListingRepository.findOne.mockResolvedValue({ id: 'l-1', status: ListingStatus.ACTIVE });
+      const qb = queryBuilder();
+      qb.getRawOne.mockResolvedValue({ '?column?': 1 });
+      mockListingRepository.createQueryBuilder.mockReturnValue(qb);
+      await expect(service.findOne('l-1')).rejects.toThrow(NotFoundException);
+    });
+
+    it('hides every listing of the owner and removes them from search', async () => {
+      const qb = queryBuilder();
+      qb.execute.mockResolvedValue({ raw: [{ id: 'a' }, { id: 'b' }] });
+      mockListingRepository.createQueryBuilder.mockReturnValue(qb);
+      const index = jest.spyOn(service, 'triggerSearchIndex').mockResolvedValue(true);
+
+      await expect(service.setOwnerHidden('u-1', true)).resolves.toEqual({ affected: 2 });
+
+      expect(qb.where).toHaveBeenCalledWith('user_id = :userId', { userId: 'u-1' });
+      expect(qb.andWhere).toHaveBeenCalledWith('owner_hidden_at IS NULL');
+      expect(index).toHaveBeenCalledWith('delete', { id: 'a' });
+      expect(index).toHaveBeenCalledWith('delete', { id: 'b' });
+    });
+
+    it('restores them and re-indexes only active listings', async () => {
+      const qb = queryBuilder();
+      qb.execute.mockResolvedValue({ raw: [{ id: 'a' }, { id: 'b' }] });
+      mockListingRepository.createQueryBuilder.mockReturnValue(qb);
+      mockListingRepository.find.mockResolvedValue([
+        { id: 'a', status: ListingStatus.ACTIVE },
+        { id: 'b', status: ListingStatus.SOLD },
+      ]);
+      const index = jest.spyOn(service, 'triggerSearchIndex').mockResolvedValue(true);
+
+      await expect(service.setOwnerHidden('u-1', false)).resolves.toEqual({ affected: 2 });
+
+      expect(qb.andWhere).toHaveBeenCalledWith('owner_hidden_at IS NOT NULL');
+      expect(index).toHaveBeenCalledTimes(1);
+      expect(index).toHaveBeenCalledWith('create', expect.objectContaining({ id: 'a' }));
     });
   });
 

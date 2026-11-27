@@ -11,6 +11,8 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { FacebookStrategy } from './strategies/facebook.strategy';
 import { OtpModule } from '../otp/otp.module';
+import { AccountController } from '../account/account.controller';
+import { AccountDeletionService } from '../account/account-deletion.service';
 
 @Module({
   imports: [
@@ -21,9 +23,10 @@ import { OtpModule } from '../otp/otp.module';
     JwtModule.register({}),
     forwardRef(() => OtpModule),
   ],
-  controllers: [AuthController, JwksController],
+  controllers: [AuthController, JwksController, AccountController],
   providers: [
     AuthService,
+    AccountDeletionService,
     JwtStrategy,
     GoogleStrategy,
     FacebookStrategy,
